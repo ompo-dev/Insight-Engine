@@ -6,7 +6,7 @@ import { eq, and, gte, lte, count, desc, sql, countDistinct } from "drizzle-orm"
 const router = Router({ mergeParams: true });
 
 router.get("/overview", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const { from, to } = req.query as Record<string, string>;
   
   const now = new Date();
@@ -96,7 +96,7 @@ router.get("/overview", async (req, res) => {
 });
 
 router.get("/events", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const { from, to, groupBy = "day" } = req.query as Record<string, string>;
   
   const now = new Date();
@@ -126,7 +126,7 @@ router.get("/events", async (req, res) => {
 });
 
 router.get("/pageviews", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const { from, to } = req.query as Record<string, string>;
   
   const now = new Date();

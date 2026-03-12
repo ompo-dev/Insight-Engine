@@ -6,7 +6,7 @@ import { eq, and, gte, lte, count, desc } from "drizzle-orm";
 const router = Router({ mergeParams: true });
 
 router.get("/", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const { method, statusCode, from, to, limit = "100", offset = "0" } = req.query as Record<string, string>;
   
   const conditions = [eq(requestsTable.projectId, projectId)];
@@ -31,7 +31,7 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const body = req.body as any;
   
   const [record] = await db.insert(requestsTable).values({

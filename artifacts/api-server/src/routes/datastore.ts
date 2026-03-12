@@ -6,7 +6,7 @@ import { eq, and, count, desc, max, min, sql } from "drizzle-orm";
 const router = Router({ mergeParams: true });
 
 router.get("/", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   
   const collections = await db.select({
     name: datastoreTable.collection,
@@ -27,7 +27,7 @@ router.get("/", async (req, res) => {
 });
 
 router.get("/:collection", async (req, res) => {
-  const { projectId, collection } = req.params;
+  const { projectId, collection } = req.params as { projectId: string; collection: string };
   const { limit = "50", offset = "0" } = req.query as Record<string, string>;
   
   const [totalResult] = await db.select({ count: count() }).from(datastoreTable)
@@ -49,11 +49,12 @@ router.get("/:collection", async (req, res) => {
 });
 
 router.post("/:collection", async (req, res) => {
-  const { projectId, collection } = req.params;
+  const { projectId, collection } = req.params as { projectId: string; collection: string };
   const { data } = req.body as { data: Record<string, any> };
   
   if (!data || typeof data !== "object") {
-    return res.status(400).json({ error: "data object is required" });
+    res.status(400).json({ error: "data object is required" });
+    return;
   }
   
   const [record] = await db.insert(datastoreTable).values({

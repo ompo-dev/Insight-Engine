@@ -1,80 +1,86 @@
-import { useParams, Link } from "wouter";
-import { useListSessions } from "@workspace/api-client-react";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { Users, Clock, ArrowRight } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { ArrowRight, Clock, Users } from "lucide-react";
+import { Link, useParams } from "wouter";
+import { useListSessions } from "@/lib/data/hooks";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Button } from "@/components/ui/button";
 
 export default function Sessions() {
   const { projectId } = useParams<{ projectId: string }>();
   const { data: sessionData, isLoading } = useListSessions(projectId!, { limit: 50 });
 
-  const formatDuration = (seconds?: number) => {
-    if (!seconds) return '-';
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m}m ${s}s`;
+  const formatDuration = (seconds?: number | null) => {
+    if (!seconds) return "-";
+    const minutes = Math.floor(seconds / 60);
+    const remainder = Math.floor(seconds % 60);
+    return `${minutes}m ${remainder}s`;
   };
 
   return (
     <AppLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">User Sessions</h1>
-          <p className="text-muted-foreground text-sm">Track user journeys and session replays.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Sessoes</h1>
+          <p className="text-sm text-muted-foreground">
+            Acompanhe jornadas, duracao e paginas de entrada de cada visita.
+          </p>
         </div>
 
-        <div className="bg-card border border-border/50 rounded-2xl shadow-subtle overflow-hidden">
+        <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-subtle">
           {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground animate-pulse">Loading sessions...</div>
+            <div className="animate-pulse p-8 text-center text-muted-foreground">Carregando sessoes...</div>
           ) : !sessionData || sessionData.sessions.length === 0 ? (
-            <EmptyState 
+            <EmptyState
               icon={<Users className="w-6 h-6" />}
-              title="No sessions recorded"
-              description="Once users visit your site and trigger events, their sessions will appear here."
+              title="Nenhuma sessao registrada"
+              description="Quando os usuarios navegarem e dispararem eventos, as sessoes vao aparecer aqui."
             />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-muted-foreground uppercase bg-muted/30 border-b border-border/50">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-border/50 bg-muted/30 text-xs uppercase text-muted-foreground">
                   <tr>
-                    <th className="px-6 py-4 font-medium">User</th>
-                    <th className="px-6 py-4 font-medium">Started At</th>
-                    <th className="px-6 py-4 font-medium">Duration</th>
-                    <th className="px-6 py-4 font-medium">Events</th>
-                    <th className="px-6 py-4 font-medium">Entry Page</th>
-                    <th className="px-6 py-4 text-right font-medium">Action</th>
+                    <th className="px-6 py-4 font-medium">Usuario</th>
+                    <th className="px-6 py-4 font-medium">Inicio</th>
+                    <th className="px-6 py-4 font-medium">Duracao</th>
+                    <th className="px-6 py-4 font-medium">Eventos</th>
+                    <th className="px-6 py-4 font-medium">Pagina inicial</th>
+                    <th className="px-6 py-4 text-right font-medium">Acao</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
                   {sessionData.sessions.map((session) => (
-                    <tr key={session.id} className="hover:bg-muted/20 transition-colors group">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                    <tr key={session.id} className="group transition-colors hover:bg-muted/20">
+                      <td className="whitespace-nowrap px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
-                            {(session.userId || session.anonymousId || '?').charAt(0).toUpperCase()}
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                            {(session.userId || session.anonymousId || "?").charAt(0).toUpperCase()}
                           </div>
-                          <span className="font-mono text-xs text-muted-foreground truncate w-24">
+                          <span className="w-24 truncate font-mono text-xs text-muted-foreground">
                             {session.userId || session.anonymousId}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-foreground">
-                        {format(parseISO(session.startedAt), 'MMM d, HH:mm')}
+                      <td className="whitespace-nowrap px-6 py-4 text-foreground">
+                        {format(parseISO(session.startedAt), "MMM d, HH:mm")}
                       </td>
-                      <td className="px-6 py-4 text-muted-foreground flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {formatDuration(session.duration)}
+                      <td className="flex items-center gap-1 px-6 py-4 text-muted-foreground">
+                        <Clock className="h-3 w-3" /> {formatDuration(session.duration)}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="bg-muted px-2 py-1 rounded text-xs font-medium">{session.eventCount}</span>
+                        <span className="rounded bg-muted px-2 py-1 text-xs font-medium">
+                          {session.eventCount}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 text-muted-foreground truncate max-w-[200px]">
-                        {session.entryPage || '-'}
+                      <td className="max-w-[200px] truncate px-6 py-4 text-muted-foreground">
+                        {session.entryPage || "-"}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Link href={`/projects/${projectId}/sessions/${session.id}`} className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors opacity-0 group-hover:opacity-100">
-                          View Details <ArrowRight className="w-3 h-3 ml-1" />
+                        <Link
+                          href={`/projects/${projectId}/sessions/${session.id}`}
+                          className="inline-flex items-center justify-center rounded-md bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground opacity-0 transition-colors hover:bg-secondary/80 group-hover:opacity-100"
+                        >
+                          Ver detalhes <ArrowRight className="ml-1 h-3 w-3" />
                         </Link>
                       </td>
                     </tr>

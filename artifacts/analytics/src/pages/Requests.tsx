@@ -1,5 +1,5 @@
 import { useParams } from "wouter";
-import { useListRequests } from "@workspace/api-client-react";
+import { useListRequests } from "@/lib/data/hooks";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ArrowLeftRight, Clock, ServerCrash } from "lucide-react";
 import { format, parseISO } from "date-fns";

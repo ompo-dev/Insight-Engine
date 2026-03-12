@@ -1,34 +1,34 @@
 openapi: 3.1.0
 info:
   title: Api
-  version: 0.1.0
-  description: Lynx Analytics Platform API
+  version: 0.2.0
+  description: Lynx Analytics — Plataforma para micro-SaaS brasileiros
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
   - name: projects
-    description: Project management
   - name: events
-    description: Event tracking and ingestion
   - name: sessions
-    description: User session tracking
   - name: analytics
-    description: Analytics and metrics
   - name: experiments
-    description: A/B testing and experiments
   - name: logs
-    description: Application logs
   - name: requests
-    description: HTTP request monitoring
   - name: datastore
-    description: Custom data storage (mini database per project)
   - name: funnels
-    description: Funnel analysis
   - name: dashboards
-    description: Dashboard management
+  - name: revenue
+    description: SaaS revenue metrics (MRR, ARR, churn, LTV)
+  - name: customers
+    description: Customer management with revenue data
+  - name: featureFlags
+    description: Feature flags management
+  - name: abacatepay
+    description: Abacate Pay payment integration
+  - name: insights
+    description: AI-powered growth insights
+
 paths:
   /healthz:
     get:
@@ -89,6 +89,29 @@ paths:
       responses:
         "200":
           description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+    patch:
+      operationId: updateProject
+      tags: [projects]
+      summary: Update a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectRequest"
+      responses:
+        "200":
+          description: Updated project
           content:
             application/json:
               schema:
@@ -787,6 +810,491 @@ paths:
               schema:
                 $ref: "#/components/schemas/Dashboard"
 
+  # ─── REVENUE & SAAS METRICS ───────────────────────────────────────────────
+
+  /projects/{projectId}/revenue/metrics:
+    get:
+      operationId: getRevenueMetrics
+      tags: [revenue]
+      summary: Get SaaS revenue metrics (MRR, ARR, churn, LTV, ARPU, CAC)
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Revenue metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevenueMetrics"
+
+  /projects/{projectId}/revenue/timeline:
+    get:
+      operationId: getRevenueTimeline
+      tags: [revenue]
+      summary: Get MRR timeline for charting
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Revenue timeline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevenueTimeline"
+
+  /projects/{projectId}/revenue/events:
+    get:
+      operationId: listRevenueEvents
+      tags: [revenue]
+      summary: List raw revenue events (payments, cancellations, upgrades)
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [payment, cancellation, upgrade, downgrade, refund, new_subscription]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Revenue events list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevenueEventListResponse"
+    post:
+      operationId: createRevenueEvent
+      tags: [revenue]
+      summary: Manually record a revenue event
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRevenueEventRequest"
+      responses:
+        "201":
+          description: Revenue event created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevenueEvent"
+
+  /projects/{projectId}/revenue/plans:
+    get:
+      operationId: getRevenuePlans
+      tags: [revenue]
+      summary: Revenue breakdown by plan
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Revenue by plan
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlanRevenue"
+
+  # ─── CUSTOMERS ────────────────────────────────────────────────────────────
+
+  /projects/{projectId}/customers:
+    get:
+      operationId: listCustomers
+      tags: [customers]
+      summary: List customers with revenue data
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, churned, trialing]
+        - name: plan
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Customers list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerListResponse"
+    post:
+      operationId: createCustomer
+      tags: [customers]
+      summary: Create or upsert a customer
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomerRequest"
+      responses:
+        "201":
+          description: Created customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+
+  /projects/{projectId}/customers/{customerId}:
+    get:
+      operationId: getCustomer
+      tags: [customers]
+      summary: Get customer details with revenue history
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Customer details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerDetail"
+
+  # ─── FEATURE FLAGS ────────────────────────────────────────────────────────
+
+  /projects/{projectId}/feature-flags:
+    get:
+      operationId: listFeatureFlags
+      tags: [featureFlags]
+      summary: List feature flags
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Feature flags list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FeatureFlag"
+    post:
+      operationId: createFeatureFlag
+      tags: [featureFlags]
+      summary: Create a feature flag
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFeatureFlagRequest"
+      responses:
+        "201":
+          description: Created feature flag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureFlag"
+
+  /projects/{projectId}/feature-flags/{flagId}:
+    patch:
+      operationId: updateFeatureFlag
+      tags: [featureFlags]
+      summary: Update a feature flag
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: flagId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFeatureFlagRequest"
+      responses:
+        "200":
+          description: Updated feature flag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureFlag"
+    delete:
+      operationId: deleteFeatureFlag
+      tags: [featureFlags]
+      summary: Delete a feature flag
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: flagId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /projects/{projectId}/feature-flags/evaluate:
+    post:
+      operationId: evaluateFeatureFlags
+      tags: [featureFlags]
+      summary: Evaluate feature flags for a user context
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvaluateFlagsRequest"
+      responses:
+        "200":
+          description: Evaluated flags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvaluateFlagsResponse"
+
+  # ─── ABACATE PAY INTEGRATION ──────────────────────────────────────────────
+
+  /projects/{projectId}/abacatepay/connect:
+    post:
+      operationId: connectAbacatePay
+      tags: [abacatepay]
+      summary: Connect Abacate Pay integration
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectAbacatePayRequest"
+      responses:
+        "200":
+          description: Connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AbacatePayStatus"
+
+  /projects/{projectId}/abacatepay/status:
+    get:
+      operationId: getAbacatePayStatus
+      tags: [abacatepay]
+      summary: Get Abacate Pay connection status
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Connection status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AbacatePayStatus"
+
+  /projects/{projectId}/abacatepay/webhook:
+    post:
+      operationId: abacatePayWebhook
+      tags: [abacatepay]
+      summary: Receive Abacate Pay webhooks
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required: [ok]
+
+  /projects/{projectId}/abacatepay/sync:
+    post:
+      operationId: syncAbacatePay
+      tags: [abacatepay]
+      summary: Sync data from Abacate Pay API
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AbacatePaySyncResult"
+
+  # ─── AI INSIGHTS ──────────────────────────────────────────────────────────
+
+  /projects/{projectId}/insights:
+    get:
+      operationId: getInsights
+      tags: [insights]
+      summary: Get AI-powered growth insights
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Growth insights
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InsightsResponse"
+
+  /projects/{projectId}/insights/alerts:
+    get:
+      operationId: getAlerts
+      tags: [insights]
+      summary: Get active alerts and anomaly detections
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Alerts list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Alert"
+
 components:
   schemas:
     HealthStatus:
@@ -809,6 +1317,10 @@ components:
           type: string
         description:
           type: string
+        website:
+          type: string
+        abacatePayConnected:
+          type: boolean
         createdAt:
           type: string
           format: date-time
@@ -819,7 +1331,11 @@ components:
           type: integer
         sessionCount:
           type: integer
-      required: [id, name, slug, apiKey, createdAt, updatedAt]
+        mrr:
+          type: number
+        customerCount:
+          type: integer
+      required: [id, name, slug, apiKey, createdAt, updatedAt, abacatePayConnected]
 
     CreateProjectRequest:
       type: object
@@ -828,7 +1344,19 @@ components:
           type: string
         description:
           type: string
+        website:
+          type: string
       required: [name]
+
+    UpdateProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        website:
+          type: string
 
     IngestEventRequest:
       type: object
@@ -1596,3 +2124,488 @@ components:
         description:
           type: string
       required: [name]
+
+    # ─── REVENUE SCHEMAS ────────────────────────────────────────────────────
+
+    RevenueMetrics:
+      type: object
+      properties:
+        mrr:
+          type: number
+          description: Monthly Recurring Revenue in BRL
+        arr:
+          type: number
+          description: Annual Recurring Revenue in BRL
+        churnRate:
+          type: number
+          description: Monthly churn rate (0-1)
+        ltv:
+          type: number
+          description: Average LTV in BRL
+        arpu:
+          type: number
+          description: Average Revenue Per User in BRL
+        cac:
+          type: number
+          description: Customer Acquisition Cost in BRL
+        activeCustomers:
+          type: integer
+        newCustomers:
+          type: integer
+        churnedCustomers:
+          type: integer
+        expansionRevenue:
+          type: number
+        mrrGrowth:
+          type: number
+          description: MRR growth % compared to previous period
+        netRevenueRetention:
+          type: number
+        benchmarks:
+          $ref: "#/components/schemas/SaaSBenchmarks"
+        period:
+          type: object
+          properties:
+            from:
+              type: string
+              format: date-time
+            to:
+              type: string
+              format: date-time
+          required: [from, to]
+      required: [mrr, arr, churnRate, ltv, arpu, activeCustomers, newCustomers, churnedCustomers, expansionRevenue, mrrGrowth, period]
+
+    SaaSBenchmarks:
+      type: object
+      properties:
+        avgChurnRate:
+          type: number
+        avgArpu:
+          type: number
+        avgMrrGrowth:
+          type: number
+      required: [avgChurnRate, avgArpu, avgMrrGrowth]
+
+    RevenueTimeline:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+              mrr:
+                type: number
+              arr:
+                type: number
+              newMrr:
+                type: number
+              churnedMrr:
+                type: number
+              expansionMrr:
+                type: number
+            required: [date, mrr, arr, newMrr, churnedMrr, expansionMrr]
+      required: [data]
+
+    RevenueEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        type:
+          type: string
+          enum: [payment, cancellation, upgrade, downgrade, refund, new_subscription]
+        amount:
+          type: number
+        currency:
+          type: string
+          default: BRL
+        customerId:
+          type: string
+        customerEmail:
+          type: string
+        plan:
+          type: string
+        description:
+          type: string
+        externalId:
+          type: string
+        source:
+          type: string
+          enum: [abacatepay, manual, api]
+        timestamp:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          additionalProperties: true
+      required: [id, projectId, type, amount, currency, timestamp, source]
+
+    RevenueEventListResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/RevenueEvent"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required: [events, total, limit, offset]
+
+    CreateRevenueEventRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [payment, cancellation, upgrade, downgrade, refund, new_subscription]
+        amount:
+          type: number
+        currency:
+          type: string
+          default: BRL
+        customerId:
+          type: string
+        customerEmail:
+          type: string
+        plan:
+          type: string
+        description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+      required: [type, amount]
+
+    PlanRevenue:
+      type: object
+      properties:
+        plan:
+          type: string
+        customers:
+          type: integer
+        mrr:
+          type: number
+        percentage:
+          type: number
+      required: [plan, customers, mrr, percentage]
+
+    # ─── CUSTOMER SCHEMAS ───────────────────────────────────────────────────
+
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        externalId:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [active, churned, trialing]
+        plan:
+          type: string
+        mrr:
+          type: number
+        ltv:
+          type: number
+        country:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        churned_at:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          additionalProperties: true
+      required: [id, projectId, email, status, createdAt]
+
+    CustomerDetail:
+      type: object
+      properties:
+        customer:
+          $ref: "#/components/schemas/Customer"
+        revenueHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/RevenueEvent"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+      required: [customer, revenueHistory, events]
+
+    CustomerListResponse:
+      type: object
+      properties:
+        customers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Customer"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required: [customers, total, limit, offset]
+
+    CreateCustomerRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+        externalId:
+          type: string
+        status:
+          type: string
+          enum: [active, churned, trialing]
+          default: active
+        plan:
+          type: string
+        mrr:
+          type: number
+        country:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+      required: [email]
+
+    # ─── FEATURE FLAG SCHEMAS ───────────────────────────────────────────────
+
+    FeatureFlag:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        key:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+        rolloutPercentage:
+          type: number
+          description: 0-100
+        targetingRules:
+          type: array
+          items:
+            $ref: "#/components/schemas/FlagTargetingRule"
+        variants:
+          type: array
+          items:
+            $ref: "#/components/schemas/FlagVariant"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, projectId, key, name, enabled, rolloutPercentage, createdAt, updatedAt]
+
+    FlagTargetingRule:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [user_id, plan, country, property]
+        operator:
+          type: string
+          enum: [in, not_in, equals, contains]
+        values:
+          type: array
+          items:
+            type: string
+        property:
+          type: string
+      required: [type, operator, values]
+
+    FlagVariant:
+      type: object
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+        weight:
+          type: number
+      required: [key, name, weight]
+
+    CreateFeatureFlagRequest:
+      type: object
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+          default: false
+        rolloutPercentage:
+          type: number
+          default: 0
+        targetingRules:
+          type: array
+          items:
+            $ref: "#/components/schemas/FlagTargetingRule"
+        variants:
+          type: array
+          items:
+            $ref: "#/components/schemas/FlagVariant"
+      required: [key, name]
+
+    UpdateFeatureFlagRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+        rolloutPercentage:
+          type: number
+        targetingRules:
+          type: array
+          items:
+            $ref: "#/components/schemas/FlagTargetingRule"
+
+    EvaluateFlagsRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+        plan:
+          type: string
+        country:
+          type: string
+        properties:
+          type: object
+          additionalProperties: true
+      required: [userId]
+
+    EvaluateFlagsResponse:
+      type: object
+      properties:
+        flags:
+          type: object
+          additionalProperties: true
+      required: [flags]
+
+    # ─── ABACATE PAY SCHEMAS ────────────────────────────────────────────────
+
+    ConnectAbacatePayRequest:
+      type: object
+      properties:
+        apiKey:
+          type: string
+        webhookSecret:
+          type: string
+      required: [apiKey]
+
+    AbacatePayStatus:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        lastSyncAt:
+          type: string
+          format: date-time
+        totalSynced:
+          type: integer
+      required: [connected]
+
+    AbacatePaySyncResult:
+      type: object
+      properties:
+        customersImported:
+          type: integer
+        paymentsImported:
+          type: integer
+        errors:
+          type: integer
+      required: [customersImported, paymentsImported, errors]
+
+    # ─── INSIGHTS SCHEMAS ───────────────────────────────────────────────────
+
+    InsightsResponse:
+      type: object
+      properties:
+        insights:
+          type: array
+          items:
+            $ref: "#/components/schemas/Insight"
+        generatedAt:
+          type: string
+          format: date-time
+      required: [insights, generatedAt]
+
+    Insight:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [growth, churn, engagement, revenue, product, benchmark]
+        severity:
+          type: string
+          enum: [positive, neutral, warning, critical]
+        title:
+          type: string
+        description:
+          type: string
+        metric:
+          type: string
+        value:
+          type: number
+        recommendation:
+          type: string
+      required: [id, type, severity, title, description]
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [churn_spike, revenue_drop, error_spike, low_conversion, high_bounce]
+        severity:
+          type: string
+          enum: [info, warning, critical]
+        title:
+          type: string
+        description:
+          type: string
+        value:
+          type: number
+        threshold:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, type, severity, title, description, createdAt]

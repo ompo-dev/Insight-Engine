@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 const router = Router({ mergeParams: true });
 
 router.get("/", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const dashboards = await db.select().from(dashboardsTable)
     .where(eq(dashboardsTable.projectId, projectId))
     .orderBy(dashboardsTable.createdAt);
@@ -14,7 +14,7 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const body = req.body as { name: string; description?: string };
   
   const [dashboard] = await db.insert(dashboardsTable).values({

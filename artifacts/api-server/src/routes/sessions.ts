@@ -6,7 +6,7 @@ import { eq, and, gte, lte, count, desc } from "drizzle-orm";
 const router = Router({ mergeParams: true });
 
 router.get("/", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const { userId, from, to, limit = "50", offset = "0" } = req.query as Record<string, string>;
   
   const conditions = [eq(sessionsTable.projectId, projectId)];
@@ -30,12 +30,15 @@ router.get("/", async (req, res) => {
 });
 
 router.get("/:sessionId", async (req, res) => {
-  const { projectId, sessionId } = req.params;
+  const { projectId, sessionId } = req.params as { projectId: string; sessionId: string };
   
   const [session] = await db.select().from(sessionsTable)
     .where(and(eq(sessionsTable.projectId, projectId), eq(sessionsTable.id, sessionId)));
   
-  if (!session) return res.status(404).json({ error: "Session not found" });
+  if (!session) {
+    res.status(404).json({ error: "Session not found" });
+    return;
+  }
   
   const events = await db.select().from(eventsTable)
     .where(and(eq(eventsTable.projectId, projectId), eq(eventsTable.sessionId, session.sessionId)))

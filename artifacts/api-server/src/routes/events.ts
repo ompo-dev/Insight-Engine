@@ -6,11 +6,12 @@ import { eq, and, gte, lte, count, desc, asc, sql } from "drizzle-orm";
 const router = Router({ mergeParams: true });
 
 router.post("/", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const { events } = req.body as { events: any[] };
   
   if (!events || !Array.isArray(events)) {
-    return res.status(400).json({ error: "events array is required" });
+    res.status(400).json({ error: "events array is required" });
+    return;
   }
   
   const inserted = await db.insert(eventsTable).values(
@@ -33,7 +34,7 @@ router.post("/", async (req, res) => {
 });
 
 router.get("/", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const { eventName, sessionId, userId, from, to, limit = "100", offset = "0" } = req.query as Record<string, string>;
   
   const conditions = [eq(eventsTable.projectId, projectId)];

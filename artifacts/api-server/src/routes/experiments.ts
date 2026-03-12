@@ -6,7 +6,7 @@ import { eq, and } from "drizzle-orm";
 const router = Router({ mergeParams: true });
 
 router.get("/", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const experiments = await db.select().from(experimentsTable)
     .where(eq(experimentsTable.projectId, projectId))
     .orderBy(experimentsTable.createdAt);
@@ -14,7 +14,7 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const body = req.body as any;
   
   const [exp] = await db.insert(experimentsTable).values({
@@ -32,11 +32,14 @@ router.post("/", async (req, res) => {
 });
 
 router.get("/:experimentId", async (req, res) => {
-  const { projectId, experimentId } = req.params;
+  const { projectId, experimentId } = req.params as { projectId: string; experimentId: string };
   const [exp] = await db.select().from(experimentsTable)
     .where(and(eq(experimentsTable.id, experimentId), eq(experimentsTable.projectId, projectId)));
   
-  if (!exp) return res.status(404).json({ error: "Experiment not found" });
+  if (!exp) {
+    res.status(404).json({ error: "Experiment not found" });
+    return;
+  }
   
   const variants = (exp.variants as any[]) ?? [];
   const totalParticipants = Math.floor(Math.random() * 1000) + 100;
@@ -66,7 +69,7 @@ router.get("/:experimentId", async (req, res) => {
 });
 
 router.patch("/:experimentId", async (req, res) => {
-  const { projectId, experimentId } = req.params;
+  const { projectId, experimentId } = req.params as { projectId: string; experimentId: string };
   const body = req.body as { status?: string; name?: string; description?: string };
   
   const updates: Record<string, any> = { updatedAt: new Date() };

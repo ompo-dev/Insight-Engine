@@ -6,7 +6,7 @@ import { eq, and, gte, lte, count, desc } from "drizzle-orm";
 const router = Router({ mergeParams: true });
 
 router.get("/", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const funnels = await db.select().from(funnelsTable)
     .where(eq(funnelsTable.projectId, projectId))
     .orderBy(funnelsTable.createdAt);
@@ -14,7 +14,7 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const body = req.body as { name: string; description?: string; steps: any[] };
   
   const [funnel] = await db.insert(funnelsTable).values({
@@ -28,13 +28,16 @@ router.post("/", async (req, res) => {
 });
 
 router.get("/:funnelId/results", async (req, res) => {
-  const { projectId, funnelId } = req.params;
+  const { projectId, funnelId } = req.params as { projectId: string; funnelId: string };
   const { from, to } = req.query as Record<string, string>;
   
   const [funnel] = await db.select().from(funnelsTable)
     .where(and(eq(funnelsTable.id, funnelId), eq(funnelsTable.projectId, projectId)));
   
-  if (!funnel) return res.status(404).json({ error: "Funnel not found" });
+  if (!funnel) {
+    res.status(404).json({ error: "Funnel not found" });
+    return;
+  }
   
   const steps = (funnel.steps as any[]) ?? [];
   const now = new Date();

@@ -1,5 +1,5 @@
 import { useParams, Link } from "wouter";
-import { useGetSession } from "@workspace/api-client-react";
+import { useGetSession } from "@/lib/data/hooks";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ArrowLeft, User, Clock, Globe, MapPin, Activity } from "lucide-react";
 import { format, parseISO, differenceInSeconds } from "date-fns";

@@ -6,7 +6,7 @@ import { eq, and, gte, lte, count, desc, like, sql } from "drizzle-orm";
 const router = Router({ mergeParams: true });
 
 router.get("/", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const { level, service, from, to, search, limit = "100", offset = "0" } = req.query as Record<string, string>;
   
   const conditions = [eq(logsTable.projectId, projectId)];
@@ -32,11 +32,12 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = req.params as { projectId: string };
   const { entries } = req.body as { entries: any[] };
   
   if (!entries || !Array.isArray(entries)) {
-    return res.status(400).json({ error: "entries array is required" });
+    res.status(400).json({ error: "entries array is required" });
+    return;
   }
   
   await db.insert(logsTable).values(

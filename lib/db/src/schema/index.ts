@@ -7,3 +7,7 @@ export * from "./requests";
 export * from "./datastore";
 export * from "./funnels";
 export * from "./dashboards";
+export * from "./customers";
+export * from "./revenue_events";
+export * from "./feature_flags";
+export * from "./integrations";

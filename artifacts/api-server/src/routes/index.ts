@@ -10,6 +10,11 @@ import requestsRouter from "./requests";
 import datastoreRouter from "./datastore";
 import funnelsRouter from "./funnels";
 import dashboardsRouter from "./dashboards";
+import revenueRouter from "./revenue";
+import customersRouter from "./customers";
+import featureFlagsRouter from "./feature_flags";
+import abacatePayRouter from "./abacatepay";
+import insightsRouter from "./insights";
 
 const router: IRouter = Router();
 
@@ -24,5 +29,10 @@ router.use("/projects/:projectId/requests", requestsRouter);
 router.use("/projects/:projectId/datastore", datastoreRouter);
 router.use("/projects/:projectId/funnels", funnelsRouter);
 router.use("/projects/:projectId/dashboards", dashboardsRouter);
+router.use("/projects/:projectId/revenue", revenueRouter);
+router.use("/projects/:projectId/customers", customersRouter);
+router.use("/projects/:projectId/feature-flags", featureFlagsRouter);
+router.use("/projects/:projectId/abacatepay", abacatePayRouter);
+router.use("/projects/:projectId/insights", insightsRouter);
 
 export default router;

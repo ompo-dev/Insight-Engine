@@ -8,6 +8,7 @@ import {
   requestsTable,
   funnelsTable,
   dashboardsTable,
+  datastoreTable,
 } from "@workspace/db";
 import { randomUUID } from "crypto";
 

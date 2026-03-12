@@ -1,15 +1,21 @@
 packages:
-  "recharts": "Powerful, responsive charting library for analytics dashboards"
-  "date-fns": "For formatting timestamps and dates elegantly"
-  "zustand": "Lightweight global state management for selected project"
-  "framer-motion": "For smooth page transitions and interactive element animations"
-  "clsx": "Utility for constructing className strings conditionally"
-  "tailwind-merge": "Utility for merging tailwind classes without style conflicts"
-  "lucide-react": "Beautiful, consistent icon set"
+  "framer-motion": "For smooth layout transitions and beautiful micro-interactions"
+  "recharts": "For SaaS metrics and analytics charts"
+  "date-fns": "For formatting timestamps"
+  "lucide-react": "For beautiful icons"
+  "clsx": "For conditional class names"
+  "tailwind-merge": "For merging tailwind classes"
+  "zustand": "For lightweight global state"
 
-images: []
+images:
+  - path: "artifacts/analytics/public/images/empty-dashboard.png"
+    description: "Abstract minimal geometric illustration in soft indigo and gray tones, representing data and analytics, on a transparent background, clean vector style"
+    aspect_ratio: "16:9"
+  - path: "artifacts/analytics/public/images/logo.png"
+    description: "Minimal modern logo mark representing an L and analytics charts, deep indigo color, flat vector style, transparent background"
+    aspect_ratio: "1:1"
 
 notes:
-  - "The API client is pre-generated in @workspace/api-client-react. We will import hooks directly from there as instructed."
-  - "Using zustand for global project state to easily switch context across the app."
-  - "UI is designed with a clean, minimal 'Notion/GitHub' aesthetic using soft contrasts, monospaced accents, and subtle borders."
+  - "The frontend now uses Axios plus Zustand stores with mock-first flows"
+  - "Currency is formatted strictly as BRL (pt-BR)"
+  - "The UI language is entirely Portuguese"

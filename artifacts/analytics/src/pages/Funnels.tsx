@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "wouter";
-import { useListFunnels, useCreateFunnel } from "@workspace/api-client-react";
+import { useListFunnels, useCreateFunnel } from "@/lib/data/hooks";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Filter, Plus, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";

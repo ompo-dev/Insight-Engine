@@ -1,16 +1,31 @@
 {
   "name": "workspace",
   "version": "0.0.0",
+  "packageManager": "bun@1.3.6",
   "license": "MIT",
+  "workspaces": [
+    "artifacts/*",
+    "lib/*",
+    "lib/integrations/*",
+    "scripts"
+  ],
   "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "dev": "bun run dev:analytics",
+    "dev:analytics": "bun run --cwd artifacts/analytics dev",
+    "dev:api": "bun run --cwd artifacts/api-server dev",
+    "dev:mockup": "bun run --cwd artifacts/mockup-sandbox dev",
+    "build": "bun run typecheck && bun run --cwd artifacts/analytics build && bun run --cwd artifacts/mockup-sandbox build && bun run --cwd artifacts/api-server build",
+    "typecheck:libs": "bun x tsc --build",
+    "typecheck": "bun run typecheck:libs && bun run --cwd artifacts/analytics typecheck && bun run --cwd artifacts/mockup-sandbox typecheck && bun run --cwd artifacts/api-server typecheck && bun run --cwd scripts typecheck"
   },
   "private": true,
   "devDependencies": {
     "typescript": "~5.9.2",
     "prettier": "^3.8.1"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.59.0",
+    "@tailwindcss/oxide-win32-x64-msvc": "^4.1.14",
+    "lightningcss-win32-x64-msvc": "^1.31.1"
   }
 }

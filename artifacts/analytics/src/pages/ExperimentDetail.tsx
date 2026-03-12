@@ -1,5 +1,5 @@
 import { useParams, Link } from "wouter";
-import { useGetExperiment, useUpdateExperiment } from "@workspace/api-client-react";
+import { useGetExperiment, useUpdateExperiment } from "@/lib/data/hooks";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ArrowLeft, Play, Pause, FlaskConical, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -124,7 +124,7 @@ export default function ExperimentDetail() {
                           <span className="text-muted-foreground">-</span>
                         ) : res.uplift !== undefined ? (
                           <span className={`font-mono font-medium ${res.uplift > 0 ? 'text-green-500' : res.uplift < 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
-                            {res.uplift > 0 ? '+' : ''}{(res.uplift * 100).toFixed(2)}%
+                            {res.uplift > 0 ? '+' : ''}{res.uplift.toFixed(2)}%
                           </span>
                         ) : (
                           <span className="text-muted-foreground">N/A</span>
@@ -143,5 +143,5 @@ export default function ExperimentDetail() {
 }
 
 function UsersIcon(props: any) {
-  return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinelinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+  return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
 }
