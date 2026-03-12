@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useProjectsStore } from "@/store/use-projects-store";
 import { useProductStore } from "@/store/use-product-store";
 import { useRevenueStore } from "@/store/use-revenue-store";
@@ -30,22 +30,24 @@ type MutationOptions<TResult> = {
 };
 
 function useQueryEffect(enabled: boolean, action: () => Promise<unknown>, deps: unknown[], interval?: number) {
-  const runAction = useEffectEvent(() => {
-    void action();
-  });
+  const actionRef = useRef(action);
+
+  useEffect(() => {
+    actionRef.current = action;
+  }, [action]);
 
   useEffect(() => {
     if (!enabled) return;
-    runAction();
-  }, [enabled, runAction, ...deps]);
+    void actionRef.current();
+  }, [enabled, ...deps]);
 
   useEffect(() => {
     if (!enabled || !interval) return;
     const handle = window.setInterval(() => {
-      runAction();
+      void actionRef.current();
     }, interval);
     return () => window.clearInterval(handle);
-  }, [enabled, interval, runAction]);
+  }, [enabled, interval]);
 }
 
 function useMutationBridge<TArgs, TResult>(
@@ -136,7 +138,7 @@ export function useListEvents(projectId: string, params: { limit?: number; offse
   const loadEvents = useProductStore((state) => state.loadEvents);
   const action = () => loadEvents(projectId, params);
 
-  useQueryEffect(enabled, action, [enabled, action, key, projectId], interval);
+  useQueryEffect(enabled, action, [key, projectId], interval);
 
   return { data, isLoading, refetch: action };
 }
@@ -149,7 +151,7 @@ export function useListSessions(projectId: string, params: { limit?: number; off
   const loadSessions = useProductStore((state) => state.loadSessions);
   const action = () => loadSessions(projectId, params);
 
-  useQueryEffect(enabled, action, [enabled, action, key, projectId]);
+  useQueryEffect(enabled, action, [key, projectId]);
 
   return { data, isLoading, refetch: action };
 }
@@ -161,7 +163,7 @@ export function useGetSession(projectId: string, sessionId: string, options?: Qu
   const loadSessionDetail = useProductStore((state) => state.loadSessionDetail);
   const action = () => loadSessionDetail(projectId, sessionId);
 
-  useQueryEffect(enabled, action, [enabled, action, projectId, sessionId]);
+  useQueryEffect(enabled, action, [projectId, sessionId]);
 
   return { data, isLoading, refetch: action };
 }
@@ -175,6 +177,18 @@ export function useListFunnels(projectId: string, options?: QueryOptions) {
   useQueryEffect(enabled, () => loadFunnels(projectId), [enabled, loadFunnels, projectId]);
 
   return { data, isLoading, refetch: () => loadFunnels(projectId) };
+}
+
+export function useGetFunnel(projectId: string, funnelId: string, options?: QueryOptions) {
+  const enabled = options?.query?.enabled ?? Boolean(projectId && funnelId);
+  const data = useProductStore((state) => (funnelId ? state.funnelDetailsById[funnelId] : undefined));
+  const isLoading = useProductStore((state) => Boolean(funnelId && state.loading[`funnel:${funnelId}`]));
+  const loadFunnelDetail = useProductStore((state) => state.loadFunnelDetail);
+  const action = () => loadFunnelDetail(projectId, funnelId);
+
+  useQueryEffect(enabled, action, [projectId, funnelId]);
+
+  return { data, isLoading, refetch: action };
 }
 
 export function useCreateFunnel(options?: MutationOptions<Funnel>) {
@@ -221,7 +235,7 @@ export function useGetExperiment(projectId: string, experimentId: string, option
   const loadExperimentDetail = useProductStore((state) => state.loadExperimentDetail);
   const action = () => loadExperimentDetail(projectId, experimentId);
 
-  useQueryEffect(enabled, action, [enabled, action, projectId, experimentId]);
+  useQueryEffect(enabled, action, [projectId, experimentId]);
 
   return { data, isLoading, refetch: action };
 }
@@ -275,7 +289,7 @@ export function useListRevenueEvents(projectId: string, params: { type?: string;
   const loadRevenueEvents = useRevenueStore((state) => state.loadRevenueEvents);
   const action = () => loadRevenueEvents(projectId, params);
 
-  useQueryEffect(enabled, action, [enabled, action, key, projectId]);
+  useQueryEffect(enabled, action, [key, projectId]);
 
   return { data, isLoading, refetch: action };
 }
@@ -288,7 +302,7 @@ export function useListCustomers(projectId: string, params: { limit?: number; of
   const loadCustomers = useRevenueStore((state) => state.loadCustomers);
   const action = () => loadCustomers(projectId, params);
 
-  useQueryEffect(enabled, action, [enabled, action, key, projectId]);
+  useQueryEffect(enabled, action, [key, projectId]);
 
   return { data, isLoading, refetch: action };
 }
@@ -358,7 +372,7 @@ export function useListLogs(projectId: string, params: { search?: string; level?
   const loadLogs = useOperationsStore((state) => state.loadLogs);
   const action = () => loadLogs(projectId, params);
 
-  useQueryEffect(enabled, action, [enabled, action, key, projectId]);
+  useQueryEffect(enabled, action, [key, projectId]);
 
   return { data, isLoading, refetch: action };
 }
@@ -371,7 +385,7 @@ export function useListRequests(projectId: string, params: { method?: string; st
   const loadRequests = useOperationsStore((state) => state.loadRequests);
   const action = () => loadRequests(projectId, params);
 
-  useQueryEffect(enabled, action, [enabled, action, key, projectId]);
+  useQueryEffect(enabled, action, [key, projectId]);
 
   return { data, isLoading, refetch: action };
 }
@@ -396,7 +410,7 @@ export function useQueryDatastore(projectId: string, collection: string, params:
   const loadRecords = useOperationsStore((state) => state.loadRecords);
   const action = () => loadRecords(projectId, collection, params);
 
-  useQueryEffect(enabled, action, [enabled, action, collection, key, projectId]);
+  useQueryEffect(enabled, action, [collection, key, projectId]);
 
   return { data, isLoading, refetch: action };
 }

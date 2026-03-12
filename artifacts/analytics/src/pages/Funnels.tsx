@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "wouter";
+import { Link, useParams } from "wouter";
 import { useListFunnels, useCreateFunnel } from "@/lib/data/hooks";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Filter, Plus, ArrowRight } from "lucide-react";
@@ -84,8 +84,10 @@ export default function Funnels() {
                   ))}
                 </div>
 
-                <Button variant="ghost" className="w-full justify-between text-muted-foreground hover:text-foreground">
-                  View Analysis <ArrowRight className="w-4 h-4" />
+                <Button asChild variant="ghost" className="w-full justify-between text-muted-foreground hover:text-foreground">
+                  <Link href={`/projects/${projectId}/funnels/${funnel.id}`}>
+                    Ver analise <ArrowRight className="w-4 h-4" />
+                  </Link>
                 </Button>
               </div>
             ))}

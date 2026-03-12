@@ -12,6 +12,7 @@ import { createEmptyDataset, createInitialDatabase, NOW, type ProjectDataset, ty
 import {
   buildAlerts,
   buildExperimentDetail,
+  buildFunnelDetail,
   buildInsights,
   buildOverview,
   buildProjectSummary,
@@ -27,11 +28,23 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
-function getDataset(projectId: string): ProjectDataset {
-  const dataset = database[projectId];
+function findDataset(projectIdentifier: string): ProjectDataset | undefined {
+  if (database[projectIdentifier]) {
+    return database[projectIdentifier];
+  }
+
+  return Object.values(database).find(
+    (dataset) =>
+      dataset.project.id === projectIdentifier ||
+      dataset.project.slug === projectIdentifier,
+  );
+}
+
+function getDataset(projectIdentifier: string): ProjectDataset {
+  const dataset = findDataset(projectIdentifier);
 
   if (!dataset) {
-    throw new Error(`Project "${projectId}" was not found.`);
+    throw new Error(`Project "${projectIdentifier}" was not found.`);
   }
 
   return dataset;
@@ -131,6 +144,12 @@ export const mockDatabase = {
   },
   listFunnels(projectId: string) {
     return clone(getDataset(projectId).funnels);
+  },
+  getFunnel(projectId: string, funnelId: string) {
+    const dataset = getDataset(projectId);
+    const funnel = dataset.funnels.find((entry) => entry.id === funnelId);
+    if (!funnel) throw new Error("Funnel not found");
+    return buildFunnelDetail(dataset, funnel);
   },
   createFunnel(projectId: string, input: { name: string; description?: string; steps: Array<{ order: number; eventName: string; label: string }> }) {
     const dataset = getDataset(projectId);

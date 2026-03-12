@@ -1,4 +1,4 @@
-import { useRoute } from "wouter";
+import { useParams } from "wouter";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -22,8 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
 export default function SaaSMetrics() {
-  const [, params] = useRoute("/projects/:projectId/metrics");
-  const projectId = params?.projectId || "";
+  const { projectId = "" } = useParams<{ projectId: string }>();
 
   const { data: metrics, isLoading: metricsLoading } = useGetRevenueMetrics(projectId, undefined, { query: { enabled: !!projectId } });
   const { data: timeline, isLoading: timelineLoading } = useGetRevenueTimeline(projectId, undefined, { query: { enabled: !!projectId } });

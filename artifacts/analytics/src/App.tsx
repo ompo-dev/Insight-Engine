@@ -9,6 +9,7 @@ import Events from "@/pages/Events";
 import Sessions from "@/pages/Sessions";
 import SessionDetail from "@/pages/SessionDetail";
 import Funnels from "@/pages/Funnels";
+import FunnelDetail from "@/pages/FunnelDetail";
 import Experiments from "@/pages/Experiments";
 import ExperimentDetail from "@/pages/ExperimentDetail";
 import Logs from "@/pages/Logs";
@@ -33,6 +34,7 @@ function Router() {
       <Route path="/projects/:projectId/sessions" component={Sessions} />
       <Route path="/projects/:projectId/sessions/:sessionId" component={SessionDetail} />
       <Route path="/projects/:projectId/funnels" component={Funnels} />
+      <Route path="/projects/:projectId/funnels/:funnelId" component={FunnelDetail} />
       <Route path="/projects/:projectId/experiments" component={Experiments} />
       <Route path="/projects/:projectId/experiments/:experimentId" component={ExperimentDetail} />
       <Route path="/projects/:projectId/metrics" component={SaaSMetrics} />

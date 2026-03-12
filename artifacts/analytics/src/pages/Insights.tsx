@@ -1,4 +1,4 @@
-import { useRoute } from "wouter";
+import { useParams } from "wouter";
 import { Sparkles, TrendingUp, AlertTriangle, Lightbulb, TrendingDown, Target } from "lucide-react";
 import { useGetInsights, useGetAlerts } from "@/lib/data/hooks";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -8,8 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export default function Insights() {
-  const [, params] = useRoute("/projects/:projectId/insights");
-  const projectId = params?.projectId || "";
+  const { projectId = "" } = useParams<{ projectId: string }>();
 
   const { data: insightsRes, isLoading: insightsLoading } = useGetInsights(projectId, { query: { enabled: !!projectId } });
   const { data: alerts, isLoading: alertsLoading } = useGetAlerts(projectId, { query: { enabled: !!projectId } });

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useRoute } from "wouter";
+import { useParams } from "wouter";
 import { Flag, Plus, Settings2, Trash2 } from "lucide-react";
 import { useListFeatureFlags, useCreateFeatureFlag, useUpdateFeatureFlag, useDeleteFeatureFlag } from "@/lib/data/hooks";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -16,8 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn, formatDate } from "@/lib/utils";
 
 export default function FeatureFlags() {
-  const [, params] = useRoute("/projects/:projectId/feature-flags");
-  const projectId = params?.projectId || "";
+  const { projectId = "" } = useParams<{ projectId: string }>();
 
   const { data: flags, isLoading, refetch } = useListFeatureFlags(projectId, { query: { enabled: !!projectId } });
   

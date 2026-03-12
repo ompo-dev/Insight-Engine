@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useRoute } from "wouter";
+import { useParams } from "wouter";
 import { Search, UserPlus, Filter } from "lucide-react";
 import { useListCustomers } from "@/lib/data/hooks";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -13,8 +13,7 @@ import { formatMoney, formatDate } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Customers() {
-  const [, params] = useRoute("/projects/:projectId/customers");
-  const projectId = params?.projectId || "";
+  const { projectId = "" } = useParams<{ projectId: string }>();
   const [search, setSearch] = useState("");
 
   const { data, isLoading } = useListCustomers(projectId, { limit: 50, search: search || undefined }, { query: { enabled: !!projectId } });

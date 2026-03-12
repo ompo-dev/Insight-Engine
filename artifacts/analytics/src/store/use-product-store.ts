@@ -6,6 +6,7 @@ import type {
   Experiment,
   ExperimentDetail,
   Funnel,
+  FunnelDetail,
   SessionDetail,
   SessionListResponse,
 } from "@/lib/data/types";
@@ -16,6 +17,7 @@ interface ProductStore {
   sessionsByProject: Record<string, SessionListResponse>;
   sessionDetailsById: Record<string, SessionDetail>;
   funnelsByProject: Record<string, Funnel[]>;
+  funnelDetailsById: Record<string, FunnelDetail>;
   experimentsByProject: Record<string, Experiment[]>;
   experimentDetailsById: Record<string, ExperimentDetail>;
   loading: Record<string, boolean>;
@@ -24,6 +26,7 @@ interface ProductStore {
   loadSessions: (projectId: string, params?: Parameters<typeof dashboardClient.analytics.sessions>[1]) => Promise<SessionListResponse>;
   loadSessionDetail: (projectId: string, sessionId: string) => Promise<SessionDetail>;
   loadFunnels: (projectId: string) => Promise<Funnel[]>;
+  loadFunnelDetail: (projectId: string, funnelId: string) => Promise<FunnelDetail>;
   createFunnel: (projectId: string, data: { name: string; description?: string; steps: Funnel["steps"] }) => Promise<Funnel>;
   loadExperiments: (projectId: string) => Promise<Experiment[]>;
   createExperiment: (projectId: string, data: Parameters<typeof dashboardClient.analytics.createExperiment>[1]) => Promise<Experiment>;
@@ -37,6 +40,7 @@ export const useProductStore = create<ProductStore>((set) => ({
   sessionsByProject: {},
   sessionDetailsById: {},
   funnelsByProject: {},
+  funnelDetailsById: {},
   experimentsByProject: {},
   experimentDetailsById: {},
   loading: {},
@@ -85,6 +89,16 @@ export const useProductStore = create<ProductStore>((set) => ({
     const data = await dashboardClient.analytics.funnels(projectId);
     set((state) => ({
       funnelsByProject: { ...state.funnelsByProject, [projectId]: data },
+      loading: { ...state.loading, [key]: false },
+    }));
+    return data;
+  },
+  loadFunnelDetail: async (projectId, funnelId) => {
+    const key = `funnel:${funnelId}`;
+    set((state) => ({ loading: { ...state.loading, [key]: true } }));
+    const data = await dashboardClient.analytics.funnelDetail(projectId, funnelId);
+    set((state) => ({
+      funnelDetailsById: { ...state.funnelDetailsById, [funnelId]: data },
       loading: { ...state.loading, [key]: false },
     }));
     return data;

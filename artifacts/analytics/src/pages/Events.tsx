@@ -1,4 +1,4 @@
-import { useRoute } from "wouter";
+import { useParams } from "wouter";
 import { Activity, Clock } from "lucide-react";
 import { useListEvents } from "@/lib/data/hooks";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -9,8 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatRelative } from "@/lib/utils";
 
 export default function Events() {
-  const [, params] = useRoute("/projects/:projectId/events");
-  const projectId = params?.projectId || "";
+  const { projectId = "" } = useParams<{ projectId: string }>();
 
   const { data, isLoading } = useListEvents(projectId, { limit: 50 }, { query: { enabled: !!projectId, refetchInterval: 10000 } });
 

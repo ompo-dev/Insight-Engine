@@ -5,6 +5,10 @@ import type {
   DatastoreCollection,
   Experiment,
   ExperimentDetail,
+  Funnel,
+  FunnelDetail,
+  FunnelSessionPreview,
+  FunnelStepAnalytics,
   Insight,
   InsightsResponse,
   PageCount,
@@ -142,6 +146,116 @@ export function buildExperimentDetail(experiment: Experiment, offset: number): E
     totalParticipants,
     confidence: experiment.status === "completed" ? 0.97 : 0.93,
     winner: results.find((result) => result.isSignificant && result.uplift > 0)?.variantId ?? null,
+  };
+}
+
+export function buildFunnelDetail(dataset: ProjectDataset, funnel: Funnel): FunnelDetail {
+  const eventsBySession = new Map(
+    dataset.sessions.map((session) => [
+      session.sessionId,
+      dataset.events
+        .filter((event) => event.sessionId === session.sessionId)
+        .sort((left, right) => new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime()),
+    ]),
+  );
+
+  const progression = dataset.sessions
+    .map((session) => {
+      const events = eventsBySession.get(session.sessionId) ?? [];
+      const matchedSteps: Array<{ index: number; timestamp: string }> = [];
+      let lastMatchIndex = -1;
+
+      for (const [stepIndex, step] of funnel.steps.entries()) {
+        const eventIndex = events.findIndex(
+          (event, index) => index > lastMatchIndex && event.name === step.eventName,
+        );
+
+        if (eventIndex === -1) {
+          break;
+        }
+
+        lastMatchIndex = eventIndex;
+        matchedSteps.push({ index: stepIndex, timestamp: events[eventIndex].timestamp });
+      }
+
+      return { session, matchedSteps };
+    })
+    .filter((entry) => entry.matchedSteps.length > 0);
+
+  const totalEntrants = progression.length;
+  const completed = progression.filter((entry) => entry.matchedSteps.length === funnel.steps.length);
+
+  const steps: FunnelStepAnalytics[] = funnel.steps.map((step, index) => {
+    const reachedSessions = progression.filter((entry) => entry.matchedSteps.length > index);
+    const nextSessions = progression.filter((entry) => entry.matchedSteps.length > index + 1);
+    const avgTimeToNextStep =
+      index < funnel.steps.length - 1
+        ? average(
+            progression
+              .filter((entry) => entry.matchedSteps.length > index + 1)
+              .map((entry) => {
+                const current = new Date(entry.matchedSteps[index].timestamp).getTime();
+                const next = new Date(entry.matchedSteps[index + 1].timestamp).getTime();
+                return (next - current) / 1000;
+              }),
+          )
+        : null;
+
+    return {
+      step,
+      reachedSessions: reachedSessions.length,
+      conversionRate: totalEntrants === 0 ? 0 : Number((reachedSessions.length / totalEntrants).toFixed(4)),
+      dropOffRate:
+        index === funnel.steps.length - 1 || reachedSessions.length === 0
+          ? 0
+          : Number((1 - nextSessions.length / reachedSessions.length).toFixed(4)),
+      avgTimeToNextStep:
+        avgTimeToNextStep === null ? null : Number(avgTimeToNextStep.toFixed(1)),
+    };
+  });
+
+  const recentSessions: FunnelSessionPreview[] = progression
+    .slice()
+    .sort(
+      (left, right) =>
+        new Date(right.session.startedAt).getTime() - new Date(left.session.startedAt).getTime(),
+    )
+    .slice(0, 8)
+    .map((entry) => ({
+      sessionId: entry.session.sessionId,
+      startedAt: entry.session.startedAt,
+      userId: entry.session.userId,
+      anonymousId: entry.session.anonymousId,
+      entryPage: entry.session.entryPage,
+      completed: entry.matchedSteps.length === funnel.steps.length,
+      completedAt:
+        entry.matchedSteps.length === funnel.steps.length
+          ? entry.matchedSteps[entry.matchedSteps.length - 1].timestamp
+          : null,
+    }));
+
+  const avgCompletionTime =
+    completed.length === 0
+      ? null
+      : Number(
+          average(
+            completed.map((entry) => {
+              const start = new Date(entry.matchedSteps[0].timestamp).getTime();
+              const end = new Date(entry.matchedSteps[entry.matchedSteps.length - 1].timestamp).getTime();
+              return (end - start) / 1000;
+            }),
+          ).toFixed(1),
+        );
+
+  return {
+    funnel,
+    totalEntrants,
+    completedSessions: completed.length,
+    overallConversionRate:
+      totalEntrants === 0 ? 0 : Number((completed.length / totalEntrants).toFixed(4)),
+    avgCompletionTime,
+    steps,
+    recentSessions,
   };
 }
 

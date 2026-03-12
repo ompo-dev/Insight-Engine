@@ -1,4 +1,4 @@
-import { useRoute } from "wouter";
+import { useParams } from "wouter";
 import { ArrowUpCircle, ArrowDownCircle, RefreshCcw, CreditCard, ExternalLink } from "lucide-react";
 import { useListRevenueEvents } from "@/lib/data/hooks";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -9,8 +9,7 @@ import { formatMoney, formatDate, cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Revenue() {
-  const [, params] = useRoute("/projects/:projectId/revenue");
-  const projectId = params?.projectId || "";
+  const { projectId = "" } = useParams<{ projectId: string }>();
 
   const { data, isLoading } = useListRevenueEvents(projectId, { limit: 100 }, { query: { enabled: !!projectId } });
 

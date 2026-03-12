@@ -5,6 +5,7 @@ import type {
   CreateProjectInput,
   Experiment,
   FeatureFlag,
+  FunnelDetail,
   FunnelStep,
   ProjectSettings,
 } from "@/lib/data/types";
@@ -75,6 +76,11 @@ export const dashboardClient = {
       mockOrApi(
         () => mockDatabase.listFunnels(projectId),
         async () => (await apiClient.get(`/projects/${projectId}/funnels`)).data,
+      ),
+    funnelDetail: (projectId: string, funnelId: string): Promise<FunnelDetail> =>
+      mockOrApi(
+        () => mockDatabase.getFunnel(projectId, funnelId),
+        async () => (await apiClient.get(`/projects/${projectId}/funnels/${funnelId}`)).data,
       ),
     createFunnel: (projectId: string, data: { name: string; description?: string; steps: FunnelStep[] }) =>
       mockOrApi(

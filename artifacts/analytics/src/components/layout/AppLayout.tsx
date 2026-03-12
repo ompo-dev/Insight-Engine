@@ -44,7 +44,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const projectId = match ? params?.projectId : null;
   const { theme, toggleTheme, setSelectedProjectId } = useProjectStore();
   const { data: projects } = useListProjects();
-  const activeProject = projects?.find((project) => project.id === projectId);
+  const activeProject = projects?.find(
+    (project) => project.id === projectId || project.slug === projectId,
+  );
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");

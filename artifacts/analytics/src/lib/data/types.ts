@@ -115,6 +115,34 @@ export interface Funnel {
   createdAt: string;
 }
 
+export interface FunnelStepAnalytics {
+  step: FunnelStep;
+  reachedSessions: number;
+  conversionRate: number;
+  dropOffRate: number;
+  avgTimeToNextStep?: number | null;
+}
+
+export interface FunnelSessionPreview {
+  sessionId: string;
+  startedAt: string;
+  userId?: string | null;
+  anonymousId?: string | null;
+  entryPage?: string | null;
+  completed: boolean;
+  completedAt?: string | null;
+}
+
+export interface FunnelDetail {
+  funnel: Funnel;
+  totalEntrants: number;
+  completedSessions: number;
+  overallConversionRate: number;
+  avgCompletionTime?: number | null;
+  steps: FunnelStepAnalytics[];
+  recentSessions: FunnelSessionPreview[];
+}
+
 export interface ExperimentVariant {
   id: string;
   name: string;
