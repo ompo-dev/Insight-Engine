@@ -1,22 +1,40 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Lynx Analytics Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: projects
+    description: Project management
+  - name: events
+    description: Event tracking and ingestion
+  - name: sessions
+    description: User session tracking
+  - name: analytics
+    description: Analytics and metrics
+  - name: experiments
+    description: A/B testing and experiments
+  - name: logs
+    description: Application logs
+  - name: requests
+    description: HTTP request monitoring
+  - name: datastore
+    description: Custom data storage (mini database per project)
+  - name: funnels
+    description: Funnel analysis
+  - name: dashboards
+    description: Dashboard management
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +42,751 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List all projects
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create a new project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectRequest"
+      responses:
+        "201":
+          description: Created project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+
+  /projects/{projectId}:
+    get:
+      operationId: getProject
+      tags: [projects]
+      summary: Get a project by ID
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+    delete:
+      operationId: deleteProject
+      tags: [projects]
+      summary: Delete a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /projects/{projectId}/events:
+    post:
+      operationId: ingestEvent
+      tags: [events]
+      summary: Ingest one or more events
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IngestEventRequest"
+      responses:
+        "201":
+          description: Events ingested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestEventResponse"
+    get:
+      operationId: listEvents
+      tags: [events]
+      summary: List events for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: eventName
+          in: query
+          schema:
+            type: string
+        - name: sessionId
+          in: query
+          schema:
+            type: string
+        - name: userId
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Events list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventListResponse"
+
+  /projects/{projectId}/analytics/overview:
+    get:
+      operationId: getAnalyticsOverview
+      tags: [analytics]
+      summary: Get analytics overview for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Analytics overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsOverview"
+
+  /projects/{projectId}/analytics/events:
+    get:
+      operationId: getEventAnalytics
+      tags: [analytics]
+      summary: Get event breakdown analytics
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: groupBy
+          in: query
+          schema:
+            type: string
+            enum: [day, hour, week]
+            default: day
+      responses:
+        "200":
+          description: Event analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventAnalytics"
+
+  /projects/{projectId}/analytics/pageviews:
+    get:
+      operationId: getPageviewAnalytics
+      tags: [analytics]
+      summary: Get pageview analytics by path
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Pageview analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageviewAnalytics"
+
+  /projects/{projectId}/sessions:
+    get:
+      operationId: listSessions
+      tags: [sessions]
+      summary: List sessions for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userId
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Sessions list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionListResponse"
+
+  /projects/{projectId}/sessions/{sessionId}:
+    get:
+      operationId: getSession
+      tags: [sessions]
+      summary: Get session details with event flow
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDetail"
+
+  /projects/{projectId}/experiments:
+    get:
+      operationId: listExperiments
+      tags: [experiments]
+      summary: List experiments
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of experiments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Experiment"
+    post:
+      operationId: createExperiment
+      tags: [experiments]
+      summary: Create an A/B experiment
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateExperimentRequest"
+      responses:
+        "201":
+          description: Created experiment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Experiment"
+
+  /projects/{projectId}/experiments/{experimentId}:
+    get:
+      operationId: getExperiment
+      tags: [experiments]
+      summary: Get experiment details with results
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: experimentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Experiment with results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExperimentDetail"
+    patch:
+      operationId: updateExperiment
+      tags: [experiments]
+      summary: Update experiment status
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: experimentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateExperimentRequest"
+      responses:
+        "200":
+          description: Updated experiment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Experiment"
+
+  /projects/{projectId}/logs:
+    get:
+      operationId: listLogs
+      tags: [logs]
+      summary: List application logs
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: level
+          in: query
+          schema:
+            type: string
+            enum: [debug, info, warn, error]
+        - name: service
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Logs list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogListResponse"
+    post:
+      operationId: ingestLog
+      tags: [logs]
+      summary: Ingest log entries
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IngestLogRequest"
+      responses:
+        "201":
+          description: Logs ingested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestLogResponse"
+
+  /projects/{projectId}/requests:
+    get:
+      operationId: listRequests
+      tags: [requests]
+      summary: List HTTP requests
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: method
+          in: query
+          schema:
+            type: string
+        - name: statusCode
+          in: query
+          schema:
+            type: integer
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Requests list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestListResponse"
+    post:
+      operationId: ingestRequest
+      tags: [requests]
+      summary: Ingest HTTP request data
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IngestRequestRequest"
+      responses:
+        "201":
+          description: Request ingested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestRecord"
+
+  /projects/{projectId}/datastore:
+    get:
+      operationId: listDatastoreCollections
+      tags: [datastore]
+      summary: List datastore collections
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Collections list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DatastoreCollection"
+
+  /projects/{projectId}/datastore/{collection}:
+    get:
+      operationId: queryDatastore
+      tags: [datastore]
+      summary: Query a datastore collection
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: collection
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Datastore records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatastoreQueryResponse"
+    post:
+      operationId: insertDatastoreRecord
+      tags: [datastore]
+      summary: Insert a record into a collection
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: collection
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InsertDatastoreRequest"
+      responses:
+        "201":
+          description: Inserted record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatastoreRecord"
+
+  /projects/{projectId}/funnels:
+    get:
+      operationId: listFunnels
+      tags: [funnels]
+      summary: List funnels for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Funnels list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Funnel"
+    post:
+      operationId: createFunnel
+      tags: [funnels]
+      summary: Create a funnel
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFunnelRequest"
+      responses:
+        "201":
+          description: Created funnel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Funnel"
+
+  /projects/{projectId}/funnels/{funnelId}/results:
+    get:
+      operationId: getFunnelResults
+      tags: [funnels]
+      summary: Get funnel results and conversion rates
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: funnelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Funnel results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FunnelResults"
+
+  /projects/{projectId}/dashboards:
+    get:
+      operationId: listDashboards
+      tags: [dashboards]
+      summary: List dashboards for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Dashboards list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dashboard"
+    post:
+      operationId: createDashboard
+      tags: [dashboards]
+      summary: Create a dashboard
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDashboardRequest"
+      responses:
+        "201":
+          description: Created dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +794,805 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        apiKey:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        eventCount:
+          type: integer
+        sessionCount:
+          type: integer
+      required: [id, name, slug, apiKey, createdAt, updatedAt]
+
+    CreateProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required: [name]
+
+    IngestEventRequest:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventInput"
+      required: [events]
+
+    EventInput:
+      type: object
+      properties:
+        name:
+          type: string
+        sessionId:
+          type: string
+        userId:
+          type: string
+        anonymousId:
+          type: string
+        properties:
+          type: object
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+        url:
+          type: string
+        referrer:
+          type: string
+        userAgent:
+          type: string
+        ip:
+          type: string
+      required: [name]
+
+    IngestEventResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        eventIds:
+          type: array
+          items:
+            type: string
+      required: [count, eventIds]
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        name:
+          type: string
+        sessionId:
+          type: string
+        userId:
+          type: string
+        anonymousId:
+          type: string
+        properties:
+          type: object
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+        url:
+          type: string
+        referrer:
+          type: string
+        userAgent:
+          type: string
+        ip:
+          type: string
+      required: [id, projectId, name, timestamp]
+
+    EventListResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required: [events, total, limit, offset]
+
+    AnalyticsOverview:
+      type: object
+      properties:
+        totalEvents:
+          type: integer
+        totalSessions:
+          type: integer
+        uniqueUsers:
+          type: integer
+        avgSessionDuration:
+          type: number
+        bounceRate:
+          type: number
+        topEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventCount"
+        topPages:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageCount"
+        dailyStats:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyStat"
+        period:
+          type: object
+          properties:
+            from:
+              type: string
+              format: date-time
+            to:
+              type: string
+              format: date-time
+          required: [from, to]
+      required: [totalEvents, totalSessions, uniqueUsers, avgSessionDuration, bounceRate, topEvents, topPages, dailyStats, period]
+
+    EventCount:
+      type: object
+      properties:
+        name:
+          type: string
+        count:
+          type: integer
+        change:
+          type: number
+      required: [name, count]
+
+    PageCount:
+      type: object
+      properties:
+        url:
+          type: string
+        count:
+          type: integer
+        avgDuration:
+          type: number
+      required: [url, count]
+
+    DailyStat:
+      type: object
+      properties:
+        date:
+          type: string
+        events:
+          type: integer
+        sessions:
+          type: integer
+        users:
+          type: integer
+      required: [date, events, sessions, users]
+
+    EventAnalytics:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventTimeSeries"
+        groupBy:
+          type: string
+      required: [events, groupBy]
+
+    EventTimeSeries:
+      type: object
+      properties:
+        name:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+              count:
+                type: integer
+            required: [timestamp, count]
+      required: [name, data]
+
+    PageviewAnalytics:
+      type: object
+      properties:
+        pages:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageStat"
+        totalPageviews:
+          type: integer
+      required: [pages, totalPageviews]
+
+    PageStat:
+      type: object
+      properties:
+        url:
+          type: string
+        pageviews:
+          type: integer
+        uniqueUsers:
+          type: integer
+        avgDuration:
+          type: number
+        bounceRate:
+          type: number
+      required: [url, pageviews, uniqueUsers]
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        userId:
+          type: string
+        anonymousId:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+        duration:
+          type: number
+        eventCount:
+          type: integer
+        entryPage:
+          type: string
+        exitPage:
+          type: string
+        referrer:
+          type: string
+        userAgent:
+          type: string
+        ip:
+          type: string
+        country:
+          type: string
+        device:
+          type: string
+      required: [id, projectId, startedAt]
+
+    SessionListResponse:
+      type: object
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Session"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required: [sessions, total, limit, offset]
+
+    SessionDetail:
+      type: object
+      properties:
+        session:
+          $ref: "#/components/schemas/Session"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+      required: [session, events]
+
+    Experiment:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [draft, running, paused, completed]
+        hypothesis:
+          type: string
+        variants:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExperimentVariant"
+        metric:
+          type: string
+        targetSampleSize:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+      required: [id, projectId, name, status, variants, createdAt, updatedAt]
+
+    ExperimentVariant:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        weight:
+          type: number
+        isControl:
+          type: boolean
+      required: [id, name, weight, isControl]
+
+    CreateExperimentRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        hypothesis:
+          type: string
+        variants:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              weight:
+                type: number
+              isControl:
+                type: boolean
+            required: [name, weight, isControl]
+        metric:
+          type: string
+        targetSampleSize:
+          type: integer
+      required: [name, variants]
+
+    UpdateExperimentRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [draft, running, paused, completed]
+        name:
+          type: string
+        description:
+          type: string
+
+    ExperimentDetail:
+      type: object
+      properties:
+        experiment:
+          $ref: "#/components/schemas/Experiment"
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExperimentVariantResult"
+        winner:
+          type: string
+        confidence:
+          type: number
+        totalParticipants:
+          type: integer
+      required: [experiment, results, totalParticipants]
+
+    ExperimentVariantResult:
+      type: object
+      properties:
+        variantId:
+          type: string
+        variantName:
+          type: string
+        participants:
+          type: integer
+        conversions:
+          type: integer
+        conversionRate:
+          type: number
+        uplift:
+          type: number
+        isSignificant:
+          type: boolean
+      required: [variantId, variantName, participants, conversions, conversionRate]
+
+    LogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        level:
+          type: string
+          enum: [debug, info, warn, error]
+        message:
+          type: string
+        service:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        meta:
+          type: object
+          additionalProperties: true
+        traceId:
+          type: string
+        spanId:
+          type: string
+      required: [id, projectId, level, message, timestamp]
+
+    IngestLogRequest:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            type: object
+            properties:
+              level:
+                type: string
+                enum: [debug, info, warn, error]
+              message:
+                type: string
+              service:
+                type: string
+              timestamp:
+                type: string
+                format: date-time
+              meta:
+                type: object
+                additionalProperties: true
+              traceId:
+                type: string
+            required: [level, message]
+      required: [entries]
+
+    IngestLogResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+      required: [count]
+
+    LogListResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/LogEntry"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required: [entries, total, limit, offset]
+
+    RequestRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        method:
+          type: string
+        url:
+          type: string
+        statusCode:
+          type: integer
+        duration:
+          type: number
+        requestSize:
+          type: integer
+        responseSize:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        ip:
+          type: string
+        userAgent:
+          type: string
+        traceId:
+          type: string
+        error:
+          type: string
+      required: [id, projectId, method, url, statusCode, duration, timestamp]
+
+    IngestRequestRequest:
+      type: object
+      properties:
+        method:
+          type: string
+        url:
+          type: string
+        statusCode:
+          type: integer
+        duration:
+          type: number
+        requestSize:
+          type: integer
+        responseSize:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        ip:
+          type: string
+        userAgent:
+          type: string
+        traceId:
+          type: string
+        error:
+          type: string
+      required: [method, url, statusCode, duration]
+
+    RequestListResponse:
+      type: object
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: "#/components/schemas/RequestRecord"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required: [requests, total, limit, offset]
+
+    DatastoreCollection:
+      type: object
+      properties:
+        name:
+          type: string
+        recordCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [name, recordCount]
+
+    DatastoreRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        collection:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, projectId, collection, data, createdAt]
+
+    InsertDatastoreRequest:
+      type: object
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+      required: [data]
+
+    DatastoreQueryResponse:
+      type: object
+      properties:
+        collection:
+          type: string
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/DatastoreRecord"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required: [collection, records, total, limit, offset]
+
+    Funnel:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/FunnelStep"
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, projectId, name, steps, createdAt]
+
+    FunnelStep:
+      type: object
+      properties:
+        order:
+          type: integer
+        eventName:
+          type: string
+        label:
+          type: string
+      required: [order, eventName, label]
+
+    CreateFunnelRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        steps:
+          type: array
+          items:
+            type: object
+            properties:
+              order:
+                type: integer
+              eventName:
+                type: string
+              label:
+                type: string
+            required: [order, eventName, label]
+      required: [name, steps]
+
+    FunnelResults:
+      type: object
+      properties:
+        funnelId:
+          type: string
+        funnelName:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/FunnelStepResult"
+        overallConversionRate:
+          type: number
+        period:
+          type: object
+          properties:
+            from:
+              type: string
+              format: date-time
+            to:
+              type: string
+              format: date-time
+          required: [from, to]
+      required: [funnelId, funnelName, steps, overallConversionRate, period]
+
+    FunnelStepResult:
+      type: object
+      properties:
+        order:
+          type: integer
+        label:
+          type: string
+        eventName:
+          type: string
+        users:
+          type: integer
+        conversionRate:
+          type: number
+        dropoffRate:
+          type: number
+      required: [order, label, eventName, users, conversionRate, dropoffRate]
+
+    Dashboard:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        widgets:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardWidget"
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, projectId, name, widgets, createdAt]
+
+    DashboardWidget:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [line_chart, bar_chart, metric, table, funnel]
+        title:
+          type: string
+        config:
+          type: object
+          additionalProperties: true
+        position:
+          type: object
+          properties:
+            x:
+              type: integer
+            y:
+              type: integer
+            w:
+              type: integer
+            h:
+              type: integer
+          required: [x, y, w, h]
+      required: [id, type, title, position]
+
+    CreateDashboardRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required: [name]

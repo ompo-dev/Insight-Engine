@@ -1,0 +1,15 @@
+packages:
+  "recharts": "Powerful, responsive charting library for analytics dashboards"
+  "date-fns": "For formatting timestamps and dates elegantly"
+  "zustand": "Lightweight global state management for selected project"
+  "framer-motion": "For smooth page transitions and interactive element animations"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility for merging tailwind classes without style conflicts"
+  "lucide-react": "Beautiful, consistent icon set"
+
+images: []
+
+notes:
+  - "The API client is pre-generated in @workspace/api-client-react. We will import hooks directly from there as instructed."
+  - "Using zustand for global project state to easily switch context across the app."
+  - "UI is designed with a clean, minimal 'Notion/GitHub' aesthetic using soft contrasts, monospaced accents, and subtle borders."
