@@ -423,6 +423,214 @@ export interface ProjectSettings {
   sdkSnippet: string;
 }
 
+export type GitHubBranchStatus = "active" | "review" | "deployed" | "stale";
+
+export interface GitHubCommit {
+  id: string;
+  sha: string;
+  repository: string;
+  branch: string;
+  message: string;
+  author: string;
+  timestamp: string;
+  additions: number;
+  deletions: number;
+  linkedPullRequestNumber?: number | null;
+  impactSummary?: string | null;
+}
+
+export interface GitHubBranch {
+  name: string;
+  status: GitHubBranchStatus;
+  lastCommitSha: string;
+  lastCommitAt: string;
+  ahead: number;
+  behind: number;
+  linkedPullRequestNumber?: number | null;
+}
+
+export interface GitHubPullRequest {
+  id: string;
+  number: number;
+  repository: string;
+  title: string;
+  status: "draft" | "open" | "merged" | "closed";
+  branch: string;
+  baseBranch: string;
+  author: string;
+  labels: string[];
+  createdAt: string;
+  mergedAt?: string | null;
+  leadTimeHours: number;
+  linkedIssueIds: string[];
+  linkedReleaseTag?: string | null;
+  risk: "low" | "medium" | "high";
+  impactSummary?: string | null;
+}
+
+export interface GitHubIssue {
+  id: string;
+  number: number;
+  repository: string;
+  title: string;
+  status: "backlog" | "in_progress" | "review" | "done";
+  kind: "feature" | "bug" | "chore";
+  priority: "low" | "medium" | "high";
+  createdAt: string;
+  updatedAt: string;
+  linkedBranch?: string | null;
+  linkedPullRequestNumber?: number | null;
+  impactMetric?: string | null;
+}
+
+export interface GitHubReleaseImpact {
+  activationDelta: number;
+  conversionDelta: number;
+  mrrDelta: number;
+  errorDelta: number;
+}
+
+export interface GitHubRelease {
+  id: string;
+  repository: string;
+  tagName: string;
+  title: string;
+  status: "healthy" | "degraded" | "rollback";
+  createdAt: string;
+  deployedAt: string;
+  linkedPullRequestNumbers: number[];
+  linkedIssueIds: string[];
+  notes: string;
+  impact: GitHubReleaseImpact;
+}
+
+export interface GitHubDeployment {
+  id: string;
+  repository: string;
+  environment: "production" | "staging";
+  branch: string;
+  releaseTag: string;
+  status: "success" | "warning" | "rollback";
+  deployedAt: string;
+  durationMinutes: number;
+  commitSha: string;
+  incidentCount: number;
+}
+
+export interface GitHubRepository {
+  id: string;
+  name: string;
+  fullName: string;
+  provider: "github";
+  visibility: "private" | "public";
+  defaultBranch: string;
+  openPullRequests: number;
+  openIssues: number;
+  activeBranches: number;
+  healthScore: number;
+  lastDeployAt?: string | null;
+  branches: GitHubBranch[];
+  commits: GitHubCommit[];
+}
+
+export interface EngineeringImpactHighlight {
+  id: string;
+  title: string;
+  summary: string;
+  tone: "positive" | "warning" | "negative" | "neutral";
+  metric: string;
+  deltaLabel: string;
+  linkedReleaseTag?: string | null;
+  linkedPullRequestNumber?: number | null;
+}
+
+export interface EngineeringTimelineItem {
+  id: string;
+  type: "commit" | "pull_request" | "release" | "deploy" | "incident";
+  title: string;
+  summary: string;
+  tone: "positive" | "warning" | "negative" | "neutral";
+  timestamp: string;
+  reference?: string | null;
+  deltaLabel?: string | null;
+}
+
+export interface EngineeringOverview {
+  summary: {
+    deploysLast30d: number;
+    averageLeadTimeHours: number;
+    openPullRequests: number;
+    openIssues: number;
+    activeBranches: number;
+    releaseHealthScore: number;
+  };
+  repositories: GitHubRepository[];
+  pullRequests: GitHubPullRequest[];
+  issues: GitHubIssue[];
+  releases: GitHubRelease[];
+  deployments: GitHubDeployment[];
+  highlights: EngineeringImpactHighlight[];
+  timeline: EngineeringTimelineItem[];
+}
+
+export type DeliveryBoardStatus = "backlog" | "in_progress" | "review" | "done" | "released";
+
+export interface DeliveryBoardColumn {
+  id: DeliveryBoardStatus;
+  title: string;
+  description: string;
+}
+
+export interface DeliveryBoardItem {
+  id: string;
+  projectId: string;
+  title: string;
+  summary?: string | null;
+  type: "feature" | "bug" | "experiment" | "ops";
+  status: DeliveryBoardStatus;
+  priority: "low" | "medium" | "high";
+  owner: string;
+  linkedIssueNumber?: number | null;
+  linkedPullRequestNumber?: number | null;
+  linkedBranch?: string | null;
+  linkedReleaseTag?: string | null;
+  impact: {
+    product: string;
+    revenue: string;
+    engineering: string;
+    tone: "positive" | "warning" | "negative" | "neutral";
+  };
+  etaLabel?: string | null;
+  updatedAt: string;
+}
+
+export interface DeliveryBoard {
+  columns: DeliveryBoardColumn[];
+  items: DeliveryBoardItem[];
+  summary: {
+    throughput7d: number;
+    avgCycleDays: number;
+    releasedThisMonth: number;
+    openIncidents: number;
+  };
+}
+
+export interface CreateBoardItemInput {
+  title: string;
+  summary?: string;
+  type: DeliveryBoardItem["type"];
+  priority: DeliveryBoardItem["priority"];
+  owner: string;
+  status?: DeliveryBoardStatus;
+  linkedBranch?: string;
+}
+
+export interface UpdateBoardItemInput {
+  status?: DeliveryBoardStatus;
+  linkedPullRequestNumber?: number | null;
+  linkedReleaseTag?: string | null;
+}
+
 export interface CreateProjectInput {
   name: string;
   description?: string;

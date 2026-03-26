@@ -3,8 +3,13 @@ import type {
   Alert,
   AnalyticsOverview,
   DatastoreCollection,
+  DeliveryBoard,
+  DeliveryBoardColumn,
   Experiment,
   ExperimentDetail,
+  EngineeringImpactHighlight,
+  EngineeringOverview,
+  EngineeringTimelineItem,
   Funnel,
   FunnelDetail,
   FunnelSessionPreview,
@@ -40,6 +45,16 @@ function sum(values: number[]): number {
 
 function average(values: number[]): number {
   return values.length === 0 ? 0 : sum(values) / values.length;
+}
+
+function sortByTimestampDesc<T extends { timestamp?: string; createdAt?: string; deployedAt?: string; updatedAt?: string }>(
+  items: T[],
+): T[] {
+  return [...items].sort((left, right) => {
+    const leftValue = left.timestamp ?? left.deployedAt ?? left.updatedAt ?? left.createdAt ?? "";
+    const rightValue = right.timestamp ?? right.deployedAt ?? right.updatedAt ?? right.createdAt ?? "";
+    return new Date(rightValue).getTime() - new Date(leftValue).getTime();
+  });
 }
 
 export function buildProjectSummary(dataset: ProjectDataset): ProjectSummary {
@@ -146,6 +161,223 @@ export function buildExperimentDetail(experiment: Experiment, offset: number): E
     totalParticipants,
     confidence: experiment.status === "completed" ? 0.97 : 0.93,
     winner: results.find((result) => result.isSignificant && result.uplift > 0)?.variantId ?? null,
+  };
+}
+
+export function buildEngineeringOverview(dataset: ProjectDataset): EngineeringOverview {
+  const deploysLast30d = dataset.engineering.deployments.filter(
+    (deployment) => new Date(deployment.deployedAt) >= subDays(NOW, 30),
+  );
+  const activeBranches = sum(dataset.engineering.repositories.map((repository) => repository.activeBranches));
+  const openPullRequests = dataset.engineering.pullRequests.filter(
+    (pullRequest) => pullRequest.status === "open" || pullRequest.status === "draft",
+  ).length;
+  const openIssues = dataset.engineering.issues.filter((issue) => issue.status !== "done").length;
+  const mergedPullRequests = dataset.engineering.pullRequests.filter((pullRequest) => pullRequest.status === "merged");
+  const averageLeadTimeHours = Number(
+    average(mergedPullRequests.map((pullRequest) => pullRequest.leadTimeHours)).toFixed(1),
+  );
+  const releaseHealthScore = Math.max(
+    0,
+    Math.round(
+      average(
+        dataset.engineering.releases.map((release) => {
+          if (release.status === "healthy") return 92;
+          if (release.status === "degraded") return 58;
+          return 34;
+        }),
+      ),
+    ),
+  );
+
+  const highlights: EngineeringImpactHighlight[] = [
+    {
+      id: `${dataset.project.id}-impact-1`,
+      title: "Onboarding gerou ganho de ativacao",
+      summary: "A ultima release guiada melhorou o caminho de trial e reduziu o bounce nas primeiras sessoes.",
+      tone: "positive",
+      metric: "Ativacao",
+      deltaLabel: `${((dataset.engineering.releases[0]?.impact.activationDelta ?? 0) * 100).toFixed(1)}%`,
+      linkedReleaseTag: dataset.engineering.releases[0]?.tagName ?? null,
+      linkedPullRequestNumber: dataset.engineering.pullRequests[0]?.number ?? null,
+    },
+    {
+      id: `${dataset.project.id}-impact-2`,
+      title: "Hotfix de API aumentou erro apos deploy",
+      summary: "O release de hotfix teve correlacao com pico de 500 e queda na conversao do checkout.",
+      tone: "warning",
+      metric: "Erros",
+      deltaLabel: `+${((dataset.engineering.releases[2]?.impact.errorDelta ?? 0) * 100).toFixed(1)}%`,
+      linkedReleaseTag: dataset.engineering.releases[2]?.tagName ?? null,
+      linkedPullRequestNumber: null,
+    },
+    {
+      id: `${dataset.project.id}-impact-3`,
+      title: "Billing fix protegeu receita recorrente",
+      summary: "O patch de idempotencia tem potencial para reduzir cancelamentos involuntarios e falhas de cobranca.",
+      tone: "neutral",
+      metric: "MRR protegido",
+      deltaLabel: "Em validacao",
+      linkedReleaseTag: null,
+      linkedPullRequestNumber: dataset.engineering.pullRequests.find((item) => item.branch === "fix/webhook-idempotency")?.number ?? null,
+    },
+  ];
+
+  const timeline: EngineeringTimelineItem[] = sortByTimestampDesc([
+    ...dataset.engineering.pullRequests.map((pullRequest) => ({
+      id: `timeline-pr-${pullRequest.id}`,
+      type: "pull_request" as const,
+      title: `PR #${pullRequest.number} ${pullRequest.status === "merged" ? "merged" : "ativa"}`,
+      summary: pullRequest.title,
+      tone: (
+        pullRequest.status === "merged"
+          ? "positive"
+          : pullRequest.risk === "high"
+            ? "warning"
+            : "neutral"
+      ) as EngineeringTimelineItem["tone"],
+      timestamp: pullRequest.mergedAt ?? pullRequest.createdAt,
+      reference: pullRequest.branch,
+      deltaLabel:
+        pullRequest.status === "merged" && pullRequest.impactSummary ? "Impacto detectado" : null,
+    })),
+    ...dataset.engineering.releases.map((release) => ({
+      id: `timeline-release-${release.id}`,
+      type: "release" as const,
+      title: `Release ${release.tagName}`,
+      summary: release.notes,
+      tone: (
+        release.status === "healthy"
+          ? "positive"
+          : release.status === "degraded"
+            ? "warning"
+            : "negative"
+      ) as EngineeringTimelineItem["tone"],
+      timestamp: release.deployedAt,
+      reference: release.repository,
+      deltaLabel: `${(release.impact.conversionDelta * 100).toFixed(1)}% conv.`,
+    })),
+    ...dataset.engineering.deployments.map((deployment) => ({
+      id: `timeline-deploy-${deployment.id}`,
+      type: deployment.incidentCount > 0 ? ("incident" as const) : ("deploy" as const),
+      title: `${deployment.environment === "production" ? "Deploy" : "Deploy staging"} ${deployment.releaseTag}`,
+      summary:
+        deployment.incidentCount > 0
+          ? `${deployment.incidentCount} incidente(s) apos o deploy`
+          : `Deploy concluido em ${deployment.durationMinutes} min`,
+      tone: (
+        deployment.status === "success"
+          ? "positive"
+          : deployment.status === "warning"
+            ? "warning"
+            : "negative"
+      ) as EngineeringTimelineItem["tone"],
+      timestamp: deployment.deployedAt,
+      reference: deployment.branch,
+      deltaLabel: deployment.incidentCount > 0 ? `+${deployment.incidentCount} incidentes` : null,
+    })),
+    ...dataset.engineering.repositories.flatMap((repository) =>
+      repository.commits.map((commit) => ({
+        id: `timeline-commit-${commit.id}`,
+        type: "commit" as const,
+        title: `${commit.sha} em ${commit.branch}`,
+        summary: commit.message,
+        tone: (commit.impactSummary ? "positive" : "neutral") as EngineeringTimelineItem["tone"],
+        timestamp: commit.timestamp,
+        reference: repository.name,
+        deltaLabel: commit.impactSummary ?? null,
+      })),
+    ),
+  ]).slice(0, 14);
+
+  return {
+    summary: {
+      deploysLast30d: deploysLast30d.length,
+      averageLeadTimeHours,
+      openPullRequests,
+      openIssues,
+      activeBranches,
+      releaseHealthScore,
+    },
+    repositories: dataset.engineering.repositories,
+    pullRequests: sortByTimestampDesc(
+      dataset.engineering.pullRequests.map((pullRequest) => ({
+        ...pullRequest,
+        timestamp: pullRequest.mergedAt ?? pullRequest.createdAt,
+      })),
+    ).map(({ timestamp: _timestamp, ...pullRequest }) => pullRequest),
+    issues: sortByTimestampDesc(
+      dataset.engineering.issues.map((issue) => ({
+        ...issue,
+        timestamp: issue.updatedAt,
+      })),
+    ).map(({ timestamp: _timestamp, ...issue }) => issue),
+    releases: sortByTimestampDesc(
+      dataset.engineering.releases.map((release) => ({
+        ...release,
+        timestamp: release.deployedAt,
+      })),
+    ).map(({ timestamp: _timestamp, ...release }) => release),
+    deployments: sortByTimestampDesc(
+      dataset.engineering.deployments.map((deployment) => ({
+        ...deployment,
+        timestamp: deployment.deployedAt,
+      })),
+    ).map(({ timestamp: _timestamp, ...deployment }) => deployment),
+    highlights,
+    timeline,
+  };
+}
+
+export function buildDeliveryBoard(dataset: ProjectDataset): DeliveryBoard {
+  const columns: DeliveryBoardColumn[] = [
+    {
+      id: "backlog",
+      title: "Backlog",
+      description: "Ideias e problemas ainda nao puxados.",
+    },
+    {
+      id: "in_progress",
+      title: "Em andamento",
+      description: "Trabalho ativo com branch aberta.",
+    },
+    {
+      id: "review",
+      title: "Em review",
+      description: "Card ligado a PR ou validacao.",
+    },
+    {
+      id: "done",
+      title: "Concluido",
+      description: "Pronto, aguardando release ou acompanhamento.",
+    },
+    {
+      id: "released",
+      title: "Publicado",
+      description: "Ja em producao com impacto monitorado.",
+    },
+  ];
+
+  const recentReleased = dataset.engineering.boardItems.filter(
+    (item) => item.status === "released" && new Date(item.updatedAt) >= subMonths(NOW, 1),
+  ).length;
+
+  return {
+    columns,
+    items: sortByTimestampDesc(
+      dataset.engineering.boardItems.map((item) => ({
+        ...item,
+        timestamp: item.updatedAt,
+      })),
+    ).map(({ timestamp: _timestamp, ...item }) => item),
+    summary: {
+      throughput7d: dataset.engineering.boardItems.filter(
+        (item) => (item.status === "done" || item.status === "released") && new Date(item.updatedAt) >= subDays(NOW, 7),
+      ).length,
+      avgCycleDays: Number((4.8 + dataset.project.name.length / 10).toFixed(1)),
+      releasedThisMonth: recentReleased,
+      openIncidents: dataset.engineering.deployments.filter((deployment) => deployment.incidentCount > 0).length,
+    },
   };
 }
 

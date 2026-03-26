@@ -2,12 +2,18 @@ import { addMinutes, addSeconds, subDays, subHours, subMonths } from "date-fns";
 import type {
   Customer,
   Dashboard,
+  DeliveryBoardItem,
   DatastoreRecord,
   EventRecord,
   Experiment,
   ExperimentVariant,
   FeatureFlag,
   Funnel,
+  GitHubDeployment,
+  GitHubIssue,
+  GitHubPullRequest,
+  GitHubRelease,
+  GitHubRepository,
   LogEntry,
   ProjectSettings,
   ProjectSummary,
@@ -15,6 +21,13 @@ import type {
   RevenueEvent,
   SessionRecord,
 } from "./types";
+import type {
+  CollectionDefinition,
+  MetricDefinition,
+  ModelDefinition,
+  ViewDefinition,
+} from "@/lib/telemetry/types";
+import { createTelemetrySeed } from "@/lib/telemetry-seed";
 
 export type ProjectRecord = Omit<
   ProjectSummary,
@@ -35,6 +48,20 @@ export interface ProjectDataset {
   datastore: Record<string, DatastoreRecord[]>;
   dashboards: Dashboard[];
   settings: ProjectSettings;
+  telemetry: {
+    collections: CollectionDefinition[];
+    metrics: MetricDefinition[];
+    models: ModelDefinition[];
+    views: ViewDefinition[];
+  };
+  engineering: {
+    repositories: GitHubRepository[];
+    pullRequests: GitHubPullRequest[];
+    issues: GitHubIssue[];
+    releases: GitHubRelease[];
+    deployments: GitHubDeployment[];
+    boardItems: DeliveryBoardItem[];
+  };
 }
 
 interface ProjectSeed {
@@ -63,6 +90,7 @@ const EVENT_POOL = [
 ];
 const COUNTRY_POOL = ["BR", "US", "PT", "MX"];
 const LOG_SERVICES = ["api", "workers", "billing", "notifications", "auth"];
+const ENGINEERING_OWNERS = ["Ana", "Bruno", "Carla", "Diego", "Elisa"];
 const REQUEST_PATHS = [
   "/api/overview",
   "/api/events",
@@ -115,6 +143,10 @@ const PROJECT_SEEDS: ProjectSeed[] = [
 
 function toIso(date: Date): string {
   return date.toISOString();
+}
+
+function sha(seed: number, index: number): string {
+  return `${seed.toString(16)}${index.toString(16)}a${(seed + index).toString(16)}b${(seed * 3 + index).toString(16)}c`.slice(0, 7);
 }
 
 function normalizeVariants(variants: ExperimentVariant[]): ExperimentVariant[] {
@@ -511,6 +543,543 @@ function createDashboards(projectId: string): Dashboard[] {
   ];
 }
 
+function createEngineeringData(project: ProjectRecord, seed: number) {
+  const slug = project.slug;
+  const webRepo = `${slug}-web`;
+  const apiRepo = `${slug}-api`;
+
+  const repositories: GitHubRepository[] = [
+    {
+      id: `${project.id}-repo-web`,
+      name: webRepo,
+      fullName: `lynx-labs/${webRepo}`,
+      provider: "github",
+      visibility: "private",
+      defaultBranch: "main",
+      openPullRequests: 2,
+      openIssues: 4,
+      activeBranches: 3,
+      healthScore: 84 - seed,
+      lastDeployAt: toIso(subDays(NOW, 1 + seed)),
+      branches: [
+        {
+          name: "main",
+          status: "deployed",
+          lastCommitSha: sha(seed, 10),
+          lastCommitAt: toIso(subDays(NOW, 1)),
+          ahead: 0,
+          behind: 0,
+          linkedPullRequestNumber: null,
+        },
+        {
+          name: "feat/onboarding-v2",
+          status: "review",
+          lastCommitSha: sha(seed, 11),
+          lastCommitAt: toIso(subDays(NOW, 2)),
+          ahead: 6,
+          behind: 1,
+          linkedPullRequestNumber: 245 + seed,
+        },
+        {
+          name: "fix/checkout-guardrails",
+          status: "active",
+          lastCommitSha: sha(seed, 12),
+          lastCommitAt: toIso(subDays(NOW, 3)),
+          ahead: 3,
+          behind: 0,
+          linkedPullRequestNumber: null,
+        },
+        {
+          name: "chore/design-tokens",
+          status: "stale",
+          lastCommitSha: sha(seed, 13),
+          lastCommitAt: toIso(subDays(NOW, 14)),
+          ahead: 2,
+          behind: 5,
+          linkedPullRequestNumber: null,
+        },
+      ],
+      commits: [
+        {
+          id: `${project.id}-commit-web-1`,
+          sha: sha(seed, 10),
+          repository: webRepo,
+          branch: "main",
+          message: "ship: release onboarding insights banner",
+          author: ENGINEERING_OWNERS[seed % ENGINEERING_OWNERS.length],
+          timestamp: toIso(subDays(NOW, 1)),
+          additions: 142,
+          deletions: 48,
+          linkedPullRequestNumber: 245 + seed,
+          impactSummary: "Ativacao subiu 11,4% apos o deploy.",
+        },
+        {
+          id: `${project.id}-commit-web-2`,
+          sha: sha(seed, 11),
+          repository: webRepo,
+          branch: "feat/onboarding-v2",
+          message: "feat: simplify trial onboarding checklist",
+          author: ENGINEERING_OWNERS[(seed + 1) % ENGINEERING_OWNERS.length],
+          timestamp: toIso(subDays(NOW, 2)),
+          additions: 214,
+          deletions: 63,
+          linkedPullRequestNumber: 245 + seed,
+          impactSummary: "Hipotese ligada a ativacao de trial.",
+        },
+        {
+          id: `${project.id}-commit-web-3`,
+          sha: sha(seed, 12),
+          repository: webRepo,
+          branch: "fix/checkout-guardrails",
+          message: "fix: block empty purchase payload on checkout",
+          author: ENGINEERING_OWNERS[(seed + 2) % ENGINEERING_OWNERS.length],
+          timestamp: toIso(subDays(NOW, 3)),
+          additions: 68,
+          deletions: 19,
+          linkedPullRequestNumber: null,
+          impactSummary: "Reducao imediata dos erros 500 no fluxo de compra.",
+        },
+      ],
+    },
+    {
+      id: `${project.id}-repo-api`,
+      name: apiRepo,
+      fullName: `lynx-labs/${apiRepo}`,
+      provider: "github",
+      visibility: "private",
+      defaultBranch: "main",
+      openPullRequests: 1,
+      openIssues: 3,
+      activeBranches: 2,
+      healthScore: 79 + seed,
+      lastDeployAt: toIso(subDays(NOW, seed)),
+      branches: [
+        {
+          name: "main",
+          status: "deployed",
+          lastCommitSha: sha(seed, 20),
+          lastCommitAt: toIso(subDays(NOW, seed)),
+          ahead: 0,
+          behind: 0,
+          linkedPullRequestNumber: null,
+        },
+        {
+          name: "fix/webhook-idempotency",
+          status: "review",
+          lastCommitSha: sha(seed, 21),
+          lastCommitAt: toIso(subDays(NOW, 4)),
+          ahead: 4,
+          behind: 0,
+          linkedPullRequestNumber: 251 + seed,
+        },
+        {
+          name: "release/2026-03-hotfix",
+          status: "active",
+          lastCommitSha: sha(seed, 22),
+          lastCommitAt: toIso(subDays(NOW, 5)),
+          ahead: 1,
+          behind: 0,
+          linkedPullRequestNumber: null,
+        },
+      ],
+      commits: [
+        {
+          id: `${project.id}-commit-api-1`,
+          sha: sha(seed, 20),
+          repository: apiRepo,
+          branch: "main",
+          message: "perf: cache subscription health queries",
+          author: ENGINEERING_OWNERS[(seed + 3) % ENGINEERING_OWNERS.length],
+          timestamp: toIso(subDays(NOW, seed)),
+          additions: 88,
+          deletions: 27,
+          linkedPullRequestNumber: 251 + seed,
+          impactSummary: "Latencia media caiu 23ms depois do merge.",
+        },
+        {
+          id: `${project.id}-commit-api-2`,
+          sha: sha(seed, 21),
+          repository: apiRepo,
+          branch: "fix/webhook-idempotency",
+          message: "fix: guarantee idempotent invoice webhooks",
+          author: ENGINEERING_OWNERS[(seed + 4) % ENGINEERING_OWNERS.length],
+          timestamp: toIso(subDays(NOW, 4)),
+          additions: 131,
+          deletions: 40,
+          linkedPullRequestNumber: 251 + seed,
+          impactSummary: "Falhas de cobranca reduziram logo apos o patch.",
+        },
+      ],
+    },
+  ];
+
+  const issues: GitHubIssue[] = [
+    {
+      id: `${project.id}-issue-1`,
+      number: 118 + seed,
+      repository: webRepo,
+      title: "Melhorar onboarding para aumentar trial-to-paid",
+      status: "review",
+      kind: "feature",
+      priority: "high",
+      createdAt: toIso(subDays(NOW, 10)),
+      updatedAt: toIso(subDays(NOW, 2)),
+      linkedBranch: "feat/onboarding-v2",
+      linkedPullRequestNumber: 245 + seed,
+      impactMetric: "Ativacao",
+    },
+    {
+      id: `${project.id}-issue-2`,
+      number: 119 + seed,
+      repository: apiRepo,
+      title: "Evitar cobranca duplicada em retries de webhook",
+      status: "review",
+      kind: "bug",
+      priority: "high",
+      createdAt: toIso(subDays(NOW, 8)),
+      updatedAt: toIso(subDays(NOW, 4)),
+      linkedBranch: "fix/webhook-idempotency",
+      linkedPullRequestNumber: 251 + seed,
+      impactMetric: "Erros de cobranca",
+    },
+    {
+      id: `${project.id}-issue-3`,
+      number: 120 + seed,
+      repository: webRepo,
+      title: "Documentar deploy flags por release",
+      status: "backlog",
+      kind: "chore",
+      priority: "medium",
+      createdAt: toIso(subDays(NOW, 6)),
+      updatedAt: toIso(subDays(NOW, 6)),
+      linkedBranch: null,
+      linkedPullRequestNumber: null,
+      impactMetric: "Confianca operacional",
+    },
+    {
+      id: `${project.id}-issue-4`,
+      number: 121 + seed,
+      repository: apiRepo,
+      title: "Investigar pico de 500 apos release passada",
+      status: "in_progress",
+      kind: "bug",
+      priority: "high",
+      createdAt: toIso(subDays(NOW, 3)),
+      updatedAt: toIso(subDays(NOW, 1)),
+      linkedBranch: "release/2026-03-hotfix",
+      linkedPullRequestNumber: null,
+      impactMetric: "Erros",
+    },
+    {
+      id: `${project.id}-issue-5`,
+      number: 122 + seed,
+      repository: webRepo,
+      title: "Criar comparativo de impacto por release",
+      status: "done",
+      kind: "feature",
+      priority: "medium",
+      createdAt: toIso(subDays(NOW, 15)),
+      updatedAt: toIso(subDays(NOW, 5)),
+      linkedBranch: "main",
+      linkedPullRequestNumber: 238 + seed,
+      impactMetric: "Conversao",
+    },
+  ];
+
+  const pullRequests: GitHubPullRequest[] = [
+    {
+      id: `${project.id}-pr-1`,
+      number: 245 + seed,
+      repository: webRepo,
+      title: "feat: onboarding com checklist guiado",
+      status: "merged",
+      branch: "feat/onboarding-v2",
+      baseBranch: "main",
+      author: ENGINEERING_OWNERS[(seed + 1) % ENGINEERING_OWNERS.length],
+      labels: ["feature", "growth"],
+      createdAt: toIso(subDays(NOW, 6)),
+      mergedAt: toIso(subDays(NOW, 1)),
+      leadTimeHours: 36 + seed * 3,
+      linkedIssueIds: [`${project.id}-issue-1`],
+      linkedReleaseTag: `v2026.03.${seed + 4}`,
+      risk: "medium",
+      impactSummary: "Depois do merge, ativacao subiu e o bounce caiu.",
+    },
+    {
+      id: `${project.id}-pr-2`,
+      number: 251 + seed,
+      repository: apiRepo,
+      title: "fix: idempotencia de webhooks de cobranca",
+      status: "open",
+      branch: "fix/webhook-idempotency",
+      baseBranch: "main",
+      author: ENGINEERING_OWNERS[(seed + 4) % ENGINEERING_OWNERS.length],
+      labels: ["bugfix", "billing"],
+      createdAt: toIso(subDays(NOW, 4)),
+      mergedAt: null,
+      leadTimeHours: 18 + seed,
+      linkedIssueIds: [`${project.id}-issue-2`],
+      linkedReleaseTag: null,
+      risk: "high",
+      impactSummary: "Pode reduzir cancelamentos por falha de cobranca.",
+    },
+    {
+      id: `${project.id}-pr-3`,
+      number: 238 + seed,
+      repository: webRepo,
+      title: "feat: score de impacto por release",
+      status: "merged",
+      branch: "feat/release-impact-score",
+      baseBranch: "main",
+      author: ENGINEERING_OWNERS[seed % ENGINEERING_OWNERS.length],
+      labels: ["feature", "analytics"],
+      createdAt: toIso(subDays(NOW, 16)),
+      mergedAt: toIso(subDays(NOW, 5)),
+      leadTimeHours: 52 + seed * 4,
+      linkedIssueIds: [`${project.id}-issue-5`],
+      linkedReleaseTag: `v2026.03.${seed + 3}`,
+      risk: "low",
+      impactSummary: "Liberou a leitura de impacto por release no dashboard.",
+    },
+    {
+      id: `${project.id}-pr-4`,
+      number: 254 + seed,
+      repository: webRepo,
+      title: "chore: reorganizar tokens de interface",
+      status: "draft",
+      branch: "chore/design-tokens",
+      baseBranch: "main",
+      author: ENGINEERING_OWNERS[(seed + 2) % ENGINEERING_OWNERS.length],
+      labels: ["chore", "design-system"],
+      createdAt: toIso(subDays(NOW, 14)),
+      mergedAt: null,
+      leadTimeHours: 0,
+      linkedIssueIds: [`${project.id}-issue-3`],
+      linkedReleaseTag: null,
+      risk: "low",
+      impactSummary: "Melhora consistencia visual sem afetar negocio diretamente.",
+    },
+  ];
+
+  const releases: GitHubRelease[] = [
+    {
+      id: `${project.id}-release-1`,
+      repository: webRepo,
+      tagName: `v2026.03.${seed + 4}`,
+      title: "Guided onboarding rollout",
+      status: "healthy",
+      createdAt: toIso(subDays(NOW, 1)),
+      deployedAt: toIso(subDays(NOW, 1)),
+      linkedPullRequestNumbers: [245 + seed],
+      linkedIssueIds: [`${project.id}-issue-1`],
+      notes: "Novo onboarding guiado com checklist e CTA contextual.",
+      impact: {
+        activationDelta: 0.114 + seed * 0.01,
+        conversionDelta: 0.062 + seed * 0.004,
+        mrrDelta: 0.038 + seed * 0.003,
+        errorDelta: -0.12,
+      },
+    },
+    {
+      id: `${project.id}-release-2`,
+      repository: webRepo,
+      tagName: `v2026.03.${seed + 3}`,
+      title: "Release impact analytics",
+      status: "healthy",
+      createdAt: toIso(subDays(NOW, 5)),
+      deployedAt: toIso(subDays(NOW, 5)),
+      linkedPullRequestNumbers: [238 + seed],
+      linkedIssueIds: [`${project.id}-issue-5`],
+      notes: "Painel de correlacao por release entrou em producao.",
+      impact: {
+        activationDelta: 0.021,
+        conversionDelta: 0.034,
+        mrrDelta: 0.012,
+        errorDelta: -0.06,
+      },
+    },
+    {
+      id: `${project.id}-release-3`,
+      repository: apiRepo,
+      tagName: `v2026.03.${seed + 2}`,
+      title: "Hotfix de webhook",
+      status: "degraded",
+      createdAt: toIso(subDays(NOW, 9)),
+      deployedAt: toIso(subDays(NOW, 9)),
+      linkedPullRequestNumbers: [],
+      linkedIssueIds: [`${project.id}-issue-4`],
+      notes: "Patch apressado aumentou 500s antes do rollback parcial.",
+      impact: {
+        activationDelta: -0.01,
+        conversionDelta: -0.018,
+        mrrDelta: -0.009,
+        errorDelta: 0.27,
+      },
+    },
+  ];
+
+  const deployments: GitHubDeployment[] = [
+    {
+      id: `${project.id}-deploy-1`,
+      repository: webRepo,
+      environment: "production",
+      branch: "main",
+      releaseTag: `v2026.03.${seed + 4}`,
+      status: "success",
+      deployedAt: toIso(subDays(NOW, 1)),
+      durationMinutes: 9 + seed,
+      commitSha: sha(seed, 10),
+      incidentCount: 0,
+    },
+    {
+      id: `${project.id}-deploy-2`,
+      repository: apiRepo,
+      environment: "production",
+      branch: "release/2026-03-hotfix",
+      releaseTag: `v2026.03.${seed + 2}`,
+      status: "warning",
+      deployedAt: toIso(subDays(NOW, 9)),
+      durationMinutes: 14 + seed,
+      commitSha: sha(seed, 20),
+      incidentCount: 2,
+    },
+    {
+      id: `${project.id}-deploy-3`,
+      repository: apiRepo,
+      environment: "staging",
+      branch: "fix/webhook-idempotency",
+      releaseTag: `candidate-${seed + 1}`,
+      status: "success",
+      deployedAt: toIso(subDays(NOW, 3)),
+      durationMinutes: 7 + seed,
+      commitSha: sha(seed, 21),
+      incidentCount: 0,
+    },
+  ];
+
+  const boardItems: DeliveryBoardItem[] = [
+    {
+      id: `${project.id}-board-1`,
+      projectId: project.id,
+      title: "Novo onboarding guiado",
+      summary: "Conectar checklist, tours e CTA de ativacao no trial.",
+      type: "feature",
+      status: "review",
+      priority: "high",
+      owner: ENGINEERING_OWNERS[(seed + 1) % ENGINEERING_OWNERS.length],
+      linkedIssueNumber: 118 + seed,
+      linkedPullRequestNumber: 245 + seed,
+      linkedBranch: "feat/onboarding-v2",
+      linkedReleaseTag: null,
+      impact: {
+        product: "Ativacao de trial melhorando.",
+        revenue: "Trial-to-paid tende a subir.",
+        engineering: "PR em review final.",
+        tone: "positive",
+      },
+      etaLabel: "Hoje",
+      updatedAt: toIso(subDays(NOW, 1)),
+    },
+    {
+      id: `${project.id}-board-2`,
+      projectId: project.id,
+      title: "Idempotencia de webhook",
+      summary: "Evitar cobranca duplicada e retries inconsistentes.",
+      type: "bug",
+      status: "in_progress",
+      priority: "high",
+      owner: ENGINEERING_OWNERS[(seed + 4) % ENGINEERING_OWNERS.length],
+      linkedIssueNumber: 119 + seed,
+      linkedPullRequestNumber: null,
+      linkedBranch: "fix/webhook-idempotency",
+      linkedReleaseTag: null,
+      impact: {
+        product: "Menos falhas visiveis no billing.",
+        revenue: "Protege MRR de cancelamentos involuntarios.",
+        engineering: "Aguardando validacao em staging.",
+        tone: "warning",
+      },
+      etaLabel: "2 dias",
+      updatedAt: toIso(subDays(NOW, 2)),
+    },
+    {
+      id: `${project.id}-board-3`,
+      projectId: project.id,
+      title: "Painel de impacto por release",
+      summary: "Mostrar o que mudou no codigo e no negocio por versao.",
+      type: "feature",
+      status: "released",
+      priority: "medium",
+      owner: ENGINEERING_OWNERS[seed % ENGINEERING_OWNERS.length],
+      linkedIssueNumber: 122 + seed,
+      linkedPullRequestNumber: 238 + seed,
+      linkedBranch: "main",
+      linkedReleaseTag: `v2026.03.${seed + 3}`,
+      impact: {
+        product: "Leitura de releases ficou clara.",
+        revenue: "Ajudou a priorizar melhorias com impacto.",
+        engineering: "Release saudavel em producao.",
+        tone: "positive",
+      },
+      etaLabel: "Publicado",
+      updatedAt: toIso(subDays(NOW, 5)),
+    },
+    {
+      id: `${project.id}-board-4`,
+      projectId: project.id,
+      title: "Investigar pico de 500",
+      summary: "Correlacionar erros com hotfix de API.",
+      type: "ops",
+      status: "done",
+      priority: "high",
+      owner: ENGINEERING_OWNERS[(seed + 3) % ENGINEERING_OWNERS.length],
+      linkedIssueNumber: 121 + seed,
+      linkedPullRequestNumber: null,
+      linkedBranch: "release/2026-03-hotfix",
+      linkedReleaseTag: `v2026.03.${seed + 2}`,
+      impact: {
+        product: "Fluxo de compra estabilizado.",
+        revenue: "Perda de conversao foi contida.",
+        engineering: "Analise concluida com plano de rollback.",
+        tone: "warning",
+      },
+      etaLabel: "Concluido",
+      updatedAt: toIso(subDays(NOW, 1)),
+    },
+    {
+      id: `${project.id}-board-5`,
+      projectId: project.id,
+      title: "Board conectado a PRs e releases",
+      summary: "Dar contexto de branch, issue e impacto por card.",
+      type: "experiment",
+      status: "backlog",
+      priority: "medium",
+      owner: ENGINEERING_OWNERS[(seed + 2) % ENGINEERING_OWNERS.length],
+      linkedIssueNumber: null,
+      linkedPullRequestNumber: null,
+      linkedBranch: null,
+      linkedReleaseTag: null,
+      impact: {
+        product: "Mais clareza entre times.",
+        revenue: "Prioriza trabalho com resultado real.",
+        engineering: "Ainda sem branch aberta.",
+        tone: "neutral",
+      },
+      etaLabel: "Planejado",
+      updatedAt: toIso(subDays(NOW, 6)),
+    },
+  ];
+
+  return {
+    repositories,
+    pullRequests,
+    issues,
+    releases,
+    deployments,
+    boardItems,
+  };
+}
+
 function createSettings(project: ProjectRecord, seed: ProjectSeed): ProjectSettings {
   return {
     projectId: project.id,
@@ -535,6 +1104,7 @@ export function createInitialDatabase(): Record<string, ProjectDataset> {
       const project = createProject(seed);
       const sessions = createSessions(seed.id, seed.seed);
       const customers = createCustomers(seed.id, seed.seed);
+      const telemetry = createTelemetrySeed(seed.id, seed.seed, NOW);
 
       return [
         seed.id,
@@ -549,9 +1119,16 @@ export function createInitialDatabase(): Record<string, ProjectDataset> {
           featureFlags: createFeatureFlags(seed.id, seed.seed),
           logs: createLogs(seed.id, seed.seed),
           requests: createRequests(seed.id, seed.seed),
-          datastore: createDatastore(seed.id, seed.seed),
+          datastore: { ...createDatastore(seed.id, seed.seed), ...telemetry.datastore },
           dashboards: createDashboards(seed.id),
           settings: createSettings(project, seed),
+          telemetry: {
+            collections: telemetry.collections,
+            metrics: telemetry.metrics,
+            models: telemetry.models,
+            views: telemetry.views,
+          },
+          engineering: createEngineeringData(project, seed.seed),
         } satisfies ProjectDataset,
       ];
     }),
@@ -572,6 +1149,20 @@ export function createEmptyDataset(project: ProjectRecord): ProjectDataset {
     requests: [],
     datastore: {},
     dashboards: [],
+    telemetry: {
+      collections: [],
+      metrics: [],
+      models: [],
+      views: [],
+    },
+    engineering: {
+      repositories: [],
+      pullRequests: [],
+      issues: [],
+      releases: [],
+      deployments: [],
+      boardItems: [],
+    },
     settings: {
       projectId: project.id,
       environment: "development",

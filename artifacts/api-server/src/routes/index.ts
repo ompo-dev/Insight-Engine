@@ -15,6 +15,7 @@ import customersRouter from "./customers";
 import featureFlagsRouter from "./feature_flags";
 import abacatePayRouter from "./abacatepay";
 import insightsRouter from "./insights";
+import terminalRouter from "./terminal";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use("/projects/:projectId/customers", customersRouter);
 router.use("/projects/:projectId/feature-flags", featureFlagsRouter);
 router.use("/projects/:projectId/abacatepay", abacatePayRouter);
 router.use("/projects/:projectId/insights", insightsRouter);
+router.use("/projects/:projectId/terminal", terminalRouter);
 
 export default router;

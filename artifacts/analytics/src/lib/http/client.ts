@@ -1,14 +1,36 @@
-import { apiClient } from "./axios";
+﻿import { apiClient } from "./axios";
 import { mockDatabase } from "@/lib/data/mock-database";
 import type {
+  CreateBoardItemInput,
   CreateFeatureFlagInput,
   CreateProjectInput,
+  DeliveryBoardItem,
   Experiment,
+  EngineeringOverview,
   FeatureFlag,
   FunnelDetail,
   FunnelStep,
   ProjectSettings,
+  UpdateBoardItemInput,
 } from "@/lib/data/types";
+import type {
+  CollectionDefinition,
+  CollectionIngestResponse,
+  CollectionRecordListResponse,
+  CollectionValidationResult,
+  CreateCollectionInput,
+  CreateMetricInput,
+  CreateModelInput,
+  CreateViewInput,
+  MaterializedDataset,
+  MaterializedMetric,
+  MetricDefinition,
+  ModelDefinition,
+  TelemetrySnippetBundle,
+  TelemetryViewPreview,
+  UpdateCollectionInput,
+  ViewDefinition,
+} from "@/lib/telemetry/types";
 
 const USE_MOCKS = (import.meta.env.VITE_USE_MOCKS ?? "true") !== "false";
 const MOCK_LATENCY = 180;
@@ -204,4 +226,151 @@ export const dashboardClient = {
         async () => (await apiClient.get(`/projects/${projectId}/dashboards`)).data,
       ),
   },
+  telemetry: {
+    collections: (projectId: string): Promise<CollectionDefinition[]> =>
+      mockOrApi(
+        () => mockDatabase.listCollectionDefinitions(projectId),
+        async () => (await apiClient.get(`/projects/${projectId}/collections`)).data,
+      ),
+    createCollection: (projectId: string, data: CreateCollectionInput): Promise<CollectionDefinition> =>
+      mockOrApi(
+        () => mockDatabase.createCollectionDefinition(projectId, data),
+        async () => (await apiClient.post(`/projects/${projectId}/collections`, data)).data,
+      ),
+    updateCollection: (
+      projectId: string,
+      collectionId: string,
+      data: UpdateCollectionInput,
+    ): Promise<CollectionDefinition> =>
+      mockOrApi(
+        () => mockDatabase.updateCollectionDefinition(projectId, collectionId, data),
+        async () => (await apiClient.patch(`/projects/${projectId}/collections/${collectionId}`, data)).data,
+      ),
+    validateCollectionPayload: (
+      projectId: string,
+      collectionSlug: string,
+      payload: Record<string, unknown>,
+    ): Promise<CollectionValidationResult> =>
+      mockOrApi(
+        () => mockDatabase.validateCollectionRecord(projectId, collectionSlug, payload),
+        async () => (await apiClient.post(`/projects/${projectId}/collections/${collectionSlug}/validate`, { payload })).data,
+      ),
+    ingestCollectionRecords: (
+      projectId: string,
+      collectionSlug: string,
+      payloads: Record<string, unknown>[],
+    ): Promise<CollectionIngestResponse> =>
+      mockOrApi(
+        () => mockDatabase.ingestCollectionRecords(projectId, collectionSlug, payloads),
+        async () => (await apiClient.post(`/projects/${projectId}/collections/${collectionSlug}/ingest`, { payloads })).data,
+      ),
+    collectionRecords: (
+      projectId: string,
+      collectionSlug: string,
+      params: { limit?: number; offset?: number } = {},
+    ): Promise<CollectionRecordListResponse> =>
+      mockOrApi(
+        () => mockDatabase.listCollectionRecords(projectId, collectionSlug, params),
+        async () => (await apiClient.get(`/projects/${projectId}/collections/${collectionSlug}/records`, { params })).data,
+      ),
+    collectionSnippets: (
+      projectId: string,
+      collectionSlug: string,
+    ): Promise<TelemetrySnippetBundle> =>
+      mockOrApi(
+        () => mockDatabase.getCollectionSnippets(projectId, collectionSlug),
+        async () => (await apiClient.get(`/projects/${projectId}/collections/${collectionSlug}/snippets`)).data,
+      ),
+    metrics: (projectId: string): Promise<MetricDefinition[]> =>
+      mockOrApi(
+        () => mockDatabase.listMetricDefinitions(projectId),
+        async () => (await apiClient.get(`/projects/${projectId}/metrics`)).data,
+      ),
+    createMetric: (projectId: string, data: CreateMetricInput): Promise<MetricDefinition> =>
+      mockOrApi(
+        () => mockDatabase.createMetricDefinition(projectId, data),
+        async () => (await apiClient.post(`/projects/${projectId}/metrics`, data)).data,
+      ),
+    updateMetric: (projectId: string, metricId: string, data: Partial<CreateMetricInput>): Promise<MetricDefinition> =>
+      mockOrApi(
+        () => mockDatabase.updateMetricDefinition(projectId, metricId, data),
+        async () => (await apiClient.patch(`/projects/${projectId}/metrics/${metricId}`, data)).data,
+      ),
+    materializedMetrics: (projectId: string): Promise<Record<string, MaterializedMetric>> =>
+      mockOrApi(
+        () => mockDatabase.listMaterializedMetrics(projectId),
+        async () => (await apiClient.get(`/projects/${projectId}/metrics/materialized`)).data,
+      ),
+    models: (projectId: string): Promise<ModelDefinition[]> =>
+      mockOrApi(
+        () => mockDatabase.listModelDefinitions(projectId),
+        async () => (await apiClient.get(`/projects/${projectId}/models`)).data,
+      ),
+    createModel: (projectId: string, data: CreateModelInput): Promise<ModelDefinition> =>
+      mockOrApi(
+        () => mockDatabase.createModelDefinition(projectId, data),
+        async () => (await apiClient.post(`/projects/${projectId}/models`, data)).data,
+      ),
+    updateModel: (projectId: string, modelId: string, data: Partial<CreateModelInput>): Promise<ModelDefinition> =>
+      mockOrApi(
+        () => mockDatabase.updateModelDefinition(projectId, modelId, data),
+        async () => (await apiClient.patch(`/projects/${projectId}/models/${modelId}`, data)).data,
+      ),
+    materializedDatasets: (projectId: string): Promise<Record<string, MaterializedDataset>> =>
+      mockOrApi(
+        () => mockDatabase.listMaterializedDatasets(projectId),
+        async () => (await apiClient.get(`/projects/${projectId}/models/materialized`)).data,
+      ),
+    views: (projectId: string): Promise<ViewDefinition[]> =>
+      mockOrApi(
+        () => mockDatabase.listViewDefinitions(projectId),
+        async () => (await apiClient.get(`/projects/${projectId}/views`)).data,
+      ),
+    createView: (projectId: string, data: CreateViewInput): Promise<ViewDefinition> =>
+      mockOrApi(
+        () => mockDatabase.createViewDefinition(projectId, data),
+        async () => (await apiClient.post(`/projects/${projectId}/views`, data)).data,
+      ),
+    updateView: (projectId: string, viewId: string, data: Partial<CreateViewInput>): Promise<ViewDefinition> =>
+      mockOrApi(
+        () => mockDatabase.updateViewDefinition(projectId, viewId, data),
+        async () => (await apiClient.patch(`/projects/${projectId}/views/${viewId}`, data)).data,
+      ),
+    viewPreviews: (
+      projectId: string,
+    ): Promise<Record<string, TelemetryViewPreview>> =>
+      mockOrApi(
+        () => mockDatabase.listViewPreviews(projectId),
+        async () => (await apiClient.get(`/projects/${projectId}/views/previews`)).data,
+      ),
+  },
+  engineering: {
+    overview: (projectId: string): Promise<EngineeringOverview> =>
+      mockOrApi(
+        () => mockDatabase.getEngineeringOverview(projectId),
+        async () => (await apiClient.get(`/projects/${projectId}/engineering`)).data,
+      ),
+    board: (projectId: string) =>
+      mockOrApi(
+        () => mockDatabase.getDeliveryBoard(projectId),
+        async () => (await apiClient.get(`/projects/${projectId}/engineering/board`)).data,
+      ),
+    createBoardItem: (projectId: string, data: CreateBoardItemInput): Promise<DeliveryBoardItem> =>
+      mockOrApi(
+        () => mockDatabase.createBoardItem(projectId, data),
+        async () => (await apiClient.post(`/projects/${projectId}/engineering/board`, data)).data,
+      ),
+    updateBoardItem: (
+      projectId: string,
+      itemId: string,
+      data: UpdateBoardItemInput,
+    ): Promise<DeliveryBoardItem> =>
+      mockOrApi(
+        () => mockDatabase.updateBoardItem(projectId, itemId, data),
+        async () => (await apiClient.patch(`/projects/${projectId}/engineering/board/${itemId}`, data)).data,
+      ),
+  },
 };
+
+
+

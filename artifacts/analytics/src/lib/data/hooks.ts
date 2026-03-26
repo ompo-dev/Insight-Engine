@@ -4,16 +4,38 @@ import { useProductStore } from "@/store/use-product-store";
 import { useRevenueStore } from "@/store/use-revenue-store";
 import { useFeatureStore } from "@/store/use-feature-store";
 import { useOperationsStore } from "@/store/use-operations-store";
+import { useEngineeringStore } from "@/store/use-engineering-store";
+import { useTelemetryStore } from "@/store/use-telemetry-store";
 import type {
+  CreateBoardItemInput,
   CreateFeatureFlagInput,
   CreateProjectInput,
+  DeliveryBoardItem,
   Experiment,
   FeatureFlag,
   Funnel,
   FunnelStep,
   ProjectSettings,
   ProjectSummary,
+  UpdateBoardItemInput,
 } from "./types";
+import type {
+  CollectionDefinition,
+  CollectionIngestResponse,
+  CollectionRecordListResponse,
+  CollectionValidationResult,
+  CreateCollectionInput,
+  CreateMetricInput,
+  CreateModelInput,
+  CreateViewInput,
+  MaterializedDataset,
+  MaterializedMetric,
+  MetricDefinition,
+  ModelDefinition,
+  TelemetrySnippetBundle,
+  UpdateCollectionInput,
+  ViewDefinition,
+} from "@/lib/telemetry/types";
 
 type QueryOptions = {
   query?: {
@@ -432,4 +454,206 @@ export function useListDashboards(projectId: string, options?: QueryOptions) {
   useQueryEffect(enabled, () => loadDashboards(projectId), [enabled, loadDashboards, projectId]);
 
   return { data, isLoading, refetch: () => loadDashboards(projectId) };
+}
+
+export function useGetEngineeringOverview(projectId: string, options?: QueryOptions) {
+  const enabled = options?.query?.enabled ?? Boolean(projectId);
+  const data = useEngineeringStore((state) => (projectId ? state.overviewByProject[projectId] : undefined));
+  const isLoading = useEngineeringStore((state) => Boolean(projectId && state.loading[`engineering-overview:${projectId}`]));
+  const loadOverview = useEngineeringStore((state) => state.loadOverview);
+
+  useQueryEffect(enabled, () => loadOverview(projectId), [enabled, loadOverview, projectId]);
+
+  return { data, isLoading, refetch: () => loadOverview(projectId) };
+}
+
+export function useGetDeliveryBoard(projectId: string, options?: QueryOptions) {
+  const enabled = options?.query?.enabled ?? Boolean(projectId);
+  const data = useEngineeringStore((state) => (projectId ? state.boardByProject[projectId] : undefined));
+  const isLoading = useEngineeringStore((state) => Boolean(projectId && state.loading[`engineering-board:${projectId}`]));
+  const loadBoard = useEngineeringStore((state) => state.loadBoard);
+
+  useQueryEffect(enabled, () => loadBoard(projectId), [enabled, loadBoard, projectId]);
+
+  return { data, isLoading, refetch: () => loadBoard(projectId) };
+}
+
+export function useCreateBoardItem(options?: MutationOptions<DeliveryBoardItem>) {
+  const createBoardItem = useEngineeringStore((state) => state.createBoardItem);
+  return useMutationBridge<{ projectId: string; data: CreateBoardItemInput }, DeliveryBoardItem>(
+    ({ projectId, data }) => createBoardItem(projectId, data),
+    options,
+  );
+}
+
+export function useUpdateBoardItem(options?: MutationOptions<DeliveryBoardItem>) {
+  const updateBoardItem = useEngineeringStore((state) => state.updateBoardItem);
+  return useMutationBridge<
+    { projectId: string; itemId: string; data: UpdateBoardItemInput },
+    DeliveryBoardItem
+  >(({ projectId, itemId, data }) => updateBoardItem(projectId, itemId, data), options);
+}
+
+export function useListCollectionDefinitions(projectId: string, options?: QueryOptions) {
+  const enabled = options?.query?.enabled ?? Boolean(projectId);
+  const data = useTelemetryStore((state) => (projectId ? state.collectionsByProject[projectId] : undefined));
+  const isLoading = useTelemetryStore((state) => Boolean(projectId && state.loading[`telemetry-collections:${projectId}`]));
+  const loadCollections = useTelemetryStore((state) => state.loadCollections);
+
+  useQueryEffect(enabled, () => loadCollections(projectId), [enabled, loadCollections, projectId]);
+
+  return { data, isLoading, refetch: () => loadCollections(projectId) };
+}
+
+export function useCreateCollectionDefinition(options?: MutationOptions<CollectionDefinition>) {
+  const createCollection = useTelemetryStore((state) => state.createCollection);
+  return useMutationBridge<{ projectId: string; data: CreateCollectionInput }, CollectionDefinition>(
+    ({ projectId, data }) => createCollection(projectId, data),
+    options,
+  );
+}
+
+export function useUpdateCollectionDefinition(options?: MutationOptions<CollectionDefinition>) {
+  const updateCollection = useTelemetryStore((state) => state.updateCollection);
+  return useMutationBridge<
+    { projectId: string; collectionId: string; data: UpdateCollectionInput },
+    CollectionDefinition
+  >(({ projectId, collectionId, data }) => updateCollection(projectId, collectionId, data), options);
+}
+
+export function useValidateCollectionPayload(options?: MutationOptions<CollectionValidationResult>) {
+  const validateCollection = useTelemetryStore((state) => state.validateCollection);
+  return useMutationBridge<
+    { projectId: string; collectionSlug: string; payload: Record<string, unknown> },
+    CollectionValidationResult
+  >(({ projectId, collectionSlug, payload }) => validateCollection(projectId, collectionSlug, payload), options);
+}
+
+export function useIngestCollectionRecords(options?: MutationOptions<CollectionIngestResponse>) {
+  const ingestCollection = useTelemetryStore((state) => state.ingestCollection);
+  return useMutationBridge<
+    { projectId: string; collectionSlug: string; payloads: Record<string, unknown>[] },
+    CollectionIngestResponse
+  >(({ projectId, collectionSlug, payloads }) => ingestCollection(projectId, collectionSlug, payloads), options);
+}
+
+export function useListCollectionRecords(
+  projectId: string,
+  collectionSlug: string,
+  params: { limit?: number; offset?: number } = {},
+  options?: QueryOptions,
+) {
+  const enabled = options?.query?.enabled ?? Boolean(projectId && collectionSlug);
+  const queryKey = `${projectId}:${collectionSlug}`;
+  const key = useMemo(() => JSON.stringify(params), [params]);
+  const data = useTelemetryStore((state) => state.collectionRecordsByKey[queryKey]);
+  const isLoading = useTelemetryStore((state) => Boolean(state.loading[`telemetry-records:${queryKey}`]));
+  const loadRecords = useTelemetryStore((state) => state.loadCollectionRecords);
+  const action = () => loadRecords(projectId, collectionSlug, params);
+
+  useQueryEffect(enabled, action, [projectId, collectionSlug, key]);
+
+  return { data, isLoading, refetch: action };
+}
+
+export function useGetCollectionSnippets(projectId: string, collectionSlug: string, options?: QueryOptions) {
+  const enabled = options?.query?.enabled ?? Boolean(projectId && collectionSlug);
+  const key = `${projectId}:${collectionSlug}`;
+  const data = useTelemetryStore((state) => state.snippetsByKey[key]);
+  const isLoading = useTelemetryStore((state) => false);
+  const loadSnippets = useTelemetryStore((state) => state.loadSnippets);
+
+  useQueryEffect(enabled, () => loadSnippets(projectId, collectionSlug), [enabled, loadSnippets, projectId, collectionSlug]);
+
+  return { data, isLoading, refetch: () => loadSnippets(projectId, collectionSlug) };
+}
+
+export function useListMetricDefinitions(projectId: string, options?: QueryOptions) {
+  const enabled = options?.query?.enabled ?? Boolean(projectId);
+  const data = useTelemetryStore((state) => (projectId ? state.metricsByProject[projectId] : undefined));
+  const isLoading = useTelemetryStore((state) => Boolean(projectId && state.loading[`telemetry-metrics:${projectId}`]));
+  const loadMetrics = useTelemetryStore((state) => state.loadMetrics);
+
+  useQueryEffect(enabled, () => loadMetrics(projectId), [enabled, loadMetrics, projectId]);
+
+  return { data, isLoading, refetch: () => loadMetrics(projectId) };
+}
+
+export function useCreateMetricDefinition(options?: MutationOptions<MetricDefinition>) {
+  const createMetric = useTelemetryStore((state) => state.createMetric);
+  return useMutationBridge<{ projectId: string; data: CreateMetricInput }, MetricDefinition>(
+    ({ projectId, data }) => createMetric(projectId, data),
+    options,
+  );
+}
+
+export function useGetMaterializedMetrics(projectId: string, options?: QueryOptions) {
+  const enabled = options?.query?.enabled ?? Boolean(projectId);
+  const data = useTelemetryStore((state) => (projectId ? state.materializedMetricsByProject[projectId] : undefined));
+  const isLoading = useTelemetryStore((state) => Boolean(projectId && state.loading[`telemetry-materialized-metrics:${projectId}`]));
+  const loadMaterialized = useTelemetryStore((state) => state.loadMaterializedMetrics);
+
+  useQueryEffect(enabled, () => loadMaterialized(projectId), [enabled, loadMaterialized, projectId]);
+
+  return { data, isLoading, refetch: () => loadMaterialized(projectId) };
+}
+
+export function useListModelDefinitions(projectId: string, options?: QueryOptions) {
+  const enabled = options?.query?.enabled ?? Boolean(projectId);
+  const data = useTelemetryStore((state) => (projectId ? state.modelsByProject[projectId] : undefined));
+  const isLoading = useTelemetryStore((state) => Boolean(projectId && state.loading[`telemetry-models:${projectId}`]));
+  const loadModels = useTelemetryStore((state) => state.loadModels);
+
+  useQueryEffect(enabled, () => loadModels(projectId), [enabled, loadModels, projectId]);
+
+  return { data, isLoading, refetch: () => loadModels(projectId) };
+}
+
+export function useCreateModelDefinition(options?: MutationOptions<ModelDefinition>) {
+  const createModel = useTelemetryStore((state) => state.createModel);
+  return useMutationBridge<{ projectId: string; data: CreateModelInput }, ModelDefinition>(
+    ({ projectId, data }) => createModel(projectId, data),
+    options,
+  );
+}
+
+export function useGetMaterializedDatasets(projectId: string, options?: QueryOptions) {
+  const enabled = options?.query?.enabled ?? Boolean(projectId);
+  const data = useTelemetryStore((state) => (projectId ? state.materializedDatasetsByProject[projectId] : undefined));
+  const isLoading = useTelemetryStore((state) => Boolean(projectId && state.loading[`telemetry-materialized-datasets:${projectId}`]));
+  const loadDatasets = useTelemetryStore((state) => state.loadMaterializedDatasets);
+
+  useQueryEffect(enabled, () => loadDatasets(projectId), [enabled, loadDatasets, projectId]);
+
+  return { data, isLoading, refetch: () => loadDatasets(projectId) };
+}
+
+export function useListViewDefinitions(projectId: string, options?: QueryOptions) {
+  const enabled = options?.query?.enabled ?? Boolean(projectId);
+  const data = useTelemetryStore((state) => (projectId ? state.viewsByProject[projectId] : undefined));
+  const isLoading = useTelemetryStore((state) => Boolean(projectId && state.loading[`telemetry-views:${projectId}`]));
+  const loadViews = useTelemetryStore((state) => state.loadViews);
+
+  useQueryEffect(enabled, () => loadViews(projectId), [enabled, loadViews, projectId]);
+
+  return { data, isLoading, refetch: () => loadViews(projectId) };
+}
+
+export function useCreateViewDefinition(options?: MutationOptions<ViewDefinition>) {
+  const createView = useTelemetryStore((state) => state.createView);
+  return useMutationBridge<{ projectId: string; data: CreateViewInput }, ViewDefinition>(
+    ({ projectId, data }) => createView(projectId, data),
+    options,
+  );
+}
+
+export function useGetViewPreviews(projectId: string, options?: QueryOptions) {
+  const enabled = options?.query?.enabled ?? Boolean(projectId);
+  const data = useTelemetryStore((state) => (projectId ? state.viewPreviewsByProject[projectId] : undefined));
+  const isLoading = useTelemetryStore((state) => Boolean(projectId && state.loading[`telemetry-view-previews:${projectId}`]));
+  const loadPreviews = useTelemetryStore((state) => state.loadViewPreviews);
+
+  useQueryEffect(enabled, () => loadPreviews(projectId), [enabled, loadPreviews, projectId]);
+
+  return { data, isLoading, refetch: () => loadPreviews(projectId) };
 }
