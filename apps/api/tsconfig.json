@@ -1,0 +1,10 @@
+{
+  "extends": "../../packages/config/src/tsconfig.package.json",
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "types": ["node"]
+  }
+}

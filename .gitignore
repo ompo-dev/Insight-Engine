@@ -8,6 +8,19 @@ out-tsc
 .expo
 .expo-shared
 
+# monorepo build output and framework caches
+**/.next/
+**/.turbo/
+**/dist/
+**/coverage/
+**/tmp/
+**/out/
+**/.cache/
+**/.sass-cache/
+**/.lynx/
+.lynx/
+
+
 # dependencies
 node_modules
 
@@ -47,3 +60,5 @@ Thumbs.db
 # local caches
 .cache/
 .local/
+target/
+src-tauri/target/

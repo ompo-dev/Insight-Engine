@@ -1,0 +1,9 @@
+{
+  "extends": "../config/src/tsconfig.package.json",
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "types": ["node", "react", "react-dom"]
+  }
+}

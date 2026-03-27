@@ -1,0 +1,16 @@
+{
+  "extends": "../../packages/config/src/tsconfig.next.json",
+  "include": [
+    "next-env.d.ts",
+    "src/**/*"
+  ],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "noEmit": true,
+    "verbatimModuleSyntax": false,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}

@@ -4,16 +4,25 @@
   "files": [],
   "references": [
     {
-      "path": "./lib/db"
+      "path": "./packages/contracts"
     },
     {
-      "path": "./lib/api-client-react"
+      "path": "./packages/db"
     },
     {
-      "path": "./lib/api-zod"
+      "path": "./packages/domain"
     },
     {
-      "path": "./lib/telemetry-sdk"
+      "path": "./packages/http"
+    },
+    {
+      "path": "./packages/ui"
+    },
+    {
+      "path": "./apps/api"
+    },
+    {
+      "path": "./apps/web"
     }
   ]
 }

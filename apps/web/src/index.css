@@ -1,0 +1,223 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "xterm/css/xterm.css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --workspace-grid-dot: rgba(255, 255, 255, 0.18);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background:
+      radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 28%),
+      radial-gradient(circle at bottom left, rgba(120, 180, 255, 0.08), transparent 24%),
+      #0a0f17;
+    color: rgba(245, 248, 255, 0.96);
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(var(--workspace-grid-dot) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.2;
+    z-index: -1;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@layer components {
+  .cq-shell {
+    container-type: inline-size;
+    container-name: shell;
+  }
+
+  .cq-panel {
+    container-type: inline-size;
+    container-name: panel;
+  }
+
+  .workspace-canvas-header-shell,
+  .workspace-canvas-action-dock-mobile-shell,
+  .workspace-canvas-footer-shell,
+  .workspace-node-dock-shell {
+    container-type: inline-size;
+  }
+
+  @container (max-width: 1040px) {
+    .workspace-canvas-header-shell .workspace-canvas-header-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .workspace-canvas-header-shell .workspace-canvas-header-meta-card {
+      max-width: none;
+      width: 100%;
+    }
+  }
+
+  @container (max-width: 760px) {
+    .workspace-canvas-header-shell .workspace-canvas-header-action .canvas-chrome-button__label {
+      display: none;
+    }
+
+    .workspace-canvas-header-shell .workspace-canvas-header-action {
+      padding-inline: 0.875rem;
+    }
+
+    .workspace-canvas-header-shell .workspace-canvas-header-title-subtitle {
+      display: none;
+    }
+  }
+
+  @container (max-width: 560px) {
+    .workspace-canvas-header-shell .workspace-canvas-header-leading {
+      width: 100%;
+    }
+
+    .workspace-canvas-header-shell .workspace-canvas-header-actions {
+      gap: 0.375rem;
+    }
+
+    .workspace-canvas-header-shell .workspace-canvas-header-avatar {
+      height: 3rem;
+      width: 3rem;
+    }
+  }
+
+  @container (max-width: 460px) {
+    .workspace-canvas-action-dock-mobile-shell .workspace-canvas-action-dock-mobile {
+      gap: 0.375rem;
+      padding: 0.5rem;
+    }
+
+    .workspace-canvas-action-dock-mobile-shell .workspace-canvas-action-dock-mobile .canvas-tool-button {
+      height: 2.5rem;
+      width: 2.5rem;
+    }
+
+    .workspace-canvas-action-dock-mobile-shell .workspace-canvas-action-dock-mobile .workspace-canvas-action-dock-separator,
+    .workspace-canvas-action-dock-mobile-shell .workspace-canvas-action-dock-mobile .h-8.w-px {
+      height: 2rem;
+    }
+
+    .workspace-canvas-action-dock-mobile-shell .workspace-canvas-action-dock-mobile .flex.items-center.gap-2 {
+      gap: 0.375rem;
+    }
+  }
+
+  @container (max-width: 360px) {
+    .workspace-canvas-action-dock-mobile-shell .workspace-canvas-action-dock-mobile {
+      max-width: calc(100vw - 2rem);
+    }
+  }
+
+  @container (max-width: 980px) {
+    .workspace-canvas-footer-shell .workspace-canvas-footer-track {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .workspace-canvas-footer-shell .workspace-canvas-footer-right {
+      align-self: flex-end;
+    }
+
+    .workspace-canvas-footer-shell .workspace-canvas-footer-left {
+      width: min(384px, calc(100vw - 2rem));
+    }
+  }
+
+  @container (max-width: 760px) {
+    .workspace-canvas-footer-shell .workspace-canvas-footer-left {
+      width: 100% !important;
+      max-width: none !important;
+    }
+
+    .workspace-canvas-footer-shell .workspace-canvas-footer-switcher-row {
+      width: 100%;
+    }
+
+    .workspace-canvas-footer-shell .workspace-canvas-footer-project-subtitle,
+    .workspace-canvas-footer-shell .workspace-canvas-footer-agent-subtitle,
+    .workspace-canvas-footer-shell
+      .workspace-canvas-footer-status
+      .canvas-status-pill__label:not(.canvas-status-pill__label--always) {
+      display: none;
+    }
+  }
+
+  @container (max-width: 560px) {
+    .workspace-canvas-footer-shell .workspace-canvas-footer-switcher-row {
+      align-items: stretch;
+    }
+
+    .workspace-canvas-footer-shell .workspace-canvas-footer-switcher,
+    .workspace-canvas-footer-shell .workspace-canvas-footer-workspace-card {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .workspace-canvas-footer-shell .workspace-canvas-footer-add-button {
+      height: 3rem;
+      width: 3rem;
+    }
+
+    .workspace-canvas-footer-shell .workspace-canvas-footer-right {
+      flex-wrap: wrap;
+      gap: 0.375rem;
+    }
+  }
+
+  @container (max-width: 760px) {
+    .workspace-node-dock-shell .workspace-node-dock-actions,
+    .workspace-node-dock-shell .workspace-node-dock-focus {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .workspace-node-dock-shell .workspace-node-dock-focus-actions {
+      justify-content: space-between;
+    }
+  }
+
+  @container (max-width: 560px) {
+    .workspace-node-dock-shell .workspace-node-dock-chip-group {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    .workspace-node-dock-shell .workspace-node-dock-submit {
+      width: 100%;
+    }
+
+    .workspace-node-dock-shell .workspace-node-dock-chip {
+      flex: 1 1 calc(50% - 0.25rem);
+      justify-content: center;
+      min-width: 0;
+    }
+  }
+}

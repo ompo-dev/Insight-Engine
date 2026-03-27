@@ -1,0 +1,32 @@
+{
+  "name": "@workspace/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "build": "bun build ./src/index.ts --target bun --outdir dist",
+    "build:mcp": "bun build ./src/mcp-server.ts --target bun --outdir dist",
+    "mcp": "bun run src/mcp-server.ts",
+    "start": "bun run dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "bunx tsc -p tsconfig.json --noEmit",
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.28.0",
+    "@elysiajs/cors": "^1.4.0",
+    "@workspace/contracts": "workspace:*",
+    "@workspace/domain": "workspace:*",
+    "@workspace/mcp-server": "workspace:*",
+    "@workspace/node-registry": "workspace:*",
+    "@workspace/runtime-core": "workspace:*",
+    "@workspace/storage": "workspace:*",
+    "@workspace/terminal-runtime": "workspace:*",
+    "elysia": "1.4.28",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.3"
+  }
+}

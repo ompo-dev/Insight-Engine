@@ -1,0 +1,52 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Project {
+  id                  String      @id @default(cuid())
+  name                String
+  slug                String      @unique
+  description         String?
+  website             String?
+  apiKey              String      @unique
+  abacatePayConnected Boolean     @default(false)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  workspaces          Workspace[]
+  assets              WorkspaceAsset[]
+}
+
+model Workspace {
+  id         String   @id @default(cuid())
+  projectId  String
+  name       String
+  roleId     String
+  layer      String   @default("map")
+  state      Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, roleId, layer])
+}
+
+model WorkspaceAsset {
+  id         String   @id @default(cuid())
+  projectId  String
+  name       String
+  extension  String
+  mimeType   String
+  size       Int
+  status     String   @default("ready")
+  meta       Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
